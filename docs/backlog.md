@@ -41,7 +41,7 @@ small and the architecture boundary is enforced from day one.
   checker rejects a forbidden import).
 **E2E:** n/a.
 
-## [~] 2. Fingerprint model and Wappalyzer-format repository — PR #2
+## [x] 2. Fingerprint model and Wappalyzer-format repository — PR #2
 **Goal:** fingerprints are data in the real Wappalyzer shape; the 24 assignment patterns load.
 **Acceptance:**
 - `domain/enums.py`: `ChannelEnum` (moved from feature 1 — this is its first consumer).
@@ -62,7 +62,7 @@ small and the architecture boundary is enforced from day one.
   file for load time < 1 s).
 **E2E:** n/a.
 
-## [ ] 3. Pure matcher core
+## [~] 3. Pure matcher core
 **Goal:** `Signals × FingerprintIndex → Detections`, exhaustively tested, no I/O.
 **Acceptance:**
 - `domain/models.py`: `Signal(channel, value, key=None)`, `Evidence(channel, key,
@@ -133,6 +133,9 @@ detections, blocked, seconds). `application/presenters/scan_report_presenter.py`
 (`present_summary`, `present_details`) turns a `ScanReport` into JSON-ready records;
 `JsonReportWriter` uses it for both `output.json` and `--details <path>` (spec §6). Tests with
 fake slow collectors prove the budget and isolation.
+Matching is synchronous CPU inside the event loop: with the shipped 24 patterns it is ~3 ms per
+domain, but measured at ~530 ms per domain against the full 13,373-pattern upstream database, so
+if `--fingerprints` is ever pointed at that in a timed run the matcher must move off the loop.
 **E2E:** live, twice; target < 30 s. Docker run (`make docker-scan`) must match the local run.
 
 ## [ ] 9. Final submission run, output.json, README architecture

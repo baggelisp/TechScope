@@ -86,15 +86,18 @@ Assignment-to-Wappalyzer mapping of the 24 given patterns: `[script]` → `scrip
   against `Signal.key`, and the value pattern (empty = "any value") with `re.search` against
   `Signal.value`. A literal Wappalyzer key is a valid regex, so the full database still loads
   unchanged. This is a documented superset of Wappalyzer semantics.
-- **The key is matched with `re.match`, not `re.search`.** Anchoring at the start is what keeps
-  the superset honest. Unanchored, a literal upstream key becomes a substring test: the F5 BigIP
-  cookie key `TIN` matches the ordinary WordPress cookie `wp-settings-time-1`, so every WordPress
-  site would be reported as running F5 BigIP, and `cf-ray` would match a header named
-  `x-cf-ray-original`. `re.fullmatch` would reject both but also breaks the assignment's own
-  prefix pattern `^intercom-`. `re.match` is the only choice that keeps all five shipped keyed
-  patterns working while rejecting both false positives. An empty *value* pattern stays legal on
-  a keyed channel, where it means "this header exists"; on a keyless channel it would match every
-  page, so the loader rejects it.
+- **The key is matched with `re.fullmatch`.** A keyed pattern must name the signal end to end.
+  Anything less turns a literal upstream key into a substring or prefix test on another
+  technology's name. Measured over the 7,894 keyed patterns of the full upstream database,
+  cross-technology key collisions number **883 under `search`, 199 under `match` and 3 under
+  `fullmatch`**: unanchored, the F5 BigIP cookie key `TIN` fires on the ordinary WordPress cookie
+  `wp-settings-time-1`; anchored only at the start, `core-js`'s global `core` still fires on
+  `window.corebine`. No upstream key is written as a prefix — zero of 5,507 literal keys begin
+  with `^` — so requiring the whole name costs nothing there, and a pattern that really means
+  "starts with" says so with its own quantifier. The one shipped pattern that needs this is the
+  assignment's `^intercom-`, stored as `^intercom-.*`: the same meaning, spelled out. An empty
+  *value* pattern stays legal on a keyed channel, where it means "this header exists"; on a
+  keyless channel it would match every page, so the loader rejects it.
 - A technology's confidence is the max over its matched patterns (default 100); reported only
   when ≥ 50. `implies` adds implied technologies at the implier's confidence.
 - Detections carry `Evidence(channel, key, pattern_source, matched_text)` so every reported

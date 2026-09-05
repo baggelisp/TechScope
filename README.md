@@ -24,7 +24,7 @@ technology list.
 |---|---|
 | Domain file parsing, CLI, JSON output | done |
 | Fingerprint loading, Wappalyzer format | done |
-| Matching signals against fingerprints | backlog 3 |
+| Matching signals against fingerprints | done |
 | HTTP fetch, response channels | backlog 4–5 |
 | DNS and JavaScript-global channels | backlog 6–7 |
 | Concurrency and the run budget | backlog 8 |
