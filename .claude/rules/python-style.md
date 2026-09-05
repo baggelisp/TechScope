@@ -150,7 +150,7 @@ model variants. Do not add a port for something that has no I/O.
   records (`FetchResult`, `FetchFailure`) next to their adapter; a module never imports a type
   from its caller. No circular imports. The layer import table in `architecture.md` is enforced
   by a test.
-- **Pass the whole object, not a fan of scalars.** Extractors take `FetchResult`, not
+- **Pass the whole object, not a fan of scalars.** Extractors take `ObservedResponse`, not
   `(headers, body, cookies, final_url)`. If a function needs several fields of one object, pass
   the object. **Pass data, not derived booleans** — `is_blocked` is decided inside the consumer
   from the result, not computed by the caller and threaded down.

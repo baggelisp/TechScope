@@ -129,3 +129,14 @@ dropped pattern looks exactly like a technology that is not in use.
 That claim is measured rather than asserted: the complete upstream database of 7,613 technologies
 loads through this repository in 0.4 s, producing 13,373 patterns across all ten channels with no
 code change. Point `--fingerprints` at any such file to use it.
+
+### A limitation worth stating
+
+A script URL is matched only where a page really loads it, in a `src` attribute. Several vendors
+are loaded instead by a snippet that writes the URL from JavaScript, and on the assignment's own
+domains Segment, Zendesk and Sentry are all invisible for that reason. Matching the URL anywhere
+in script text would find them, and was tried — but it also reported Sentry on sentry.io, where
+the only occurrence is a code sample inside the page's own onboarding documentation. Since a
+false positive is worse than a miss, the narrower rule stands. The channel that would detect
+these properly is `window.*` globals, and the fingerprint set the assignment supplies contains
+no such patterns.

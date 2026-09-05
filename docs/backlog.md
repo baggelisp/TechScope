@@ -77,7 +77,7 @@ small and the architecture boundary is enforced from day one.
   `JS_GLOBAL` names; `scripts` patterns match `SCRIPT_INLINE` bodies.
 **E2E:** n/a.
 
-## [~] 4. HTTP fetcher with redirect, timeout, and soft-block handling — PR #4
+## [x] 4. HTTP fetcher with redirect, timeout, and soft-block handling — PR #4
 **Goal:** one polite, bounded, non-crashing homepage fetch per domain.
 **Acceptance:** `domain/enums.py` gains `BlockReasonEnum` and `FailureReasonEnum` (moved from
 feature 1 — the first failures appear here). Then, per `network-etiquette.md` —
@@ -92,7 +92,7 @@ challenge pages, keeping headers. `application/ports/signal_collector.py` (`Sign
 `bootstrap.py` with no extractors yet. Tests with `respx`.
 **E2E:** first live run — sequential is fine; verify 20/20 domains present and no crash.
 
-## [ ] 5. Response extractors: headers, cookies, script src, meta, html
+## [~] 5. Response extractors: headers, cookies, script src, meta, html — PR #5
 **Goal:** five pure extractors from `FetchResult` → `tuple[Signal, ...]`.
 **Acceptance:** `infrastructure/extractors/headers.py`, `cookies.py` (names from every
 `Set-Cookie`), `scripts.py` (`<script src>` incl. protocol-relative and unquoted attrs; inline
@@ -133,9 +133,10 @@ detections, blocked, seconds). `application/presenters/scan_report_presenter.py`
 (`present_summary`, `present_details`) turns a `ScanReport` into JSON-ready records;
 `JsonReportWriter` uses it for both `output.json` and `--details <path>` (spec §6). Tests with
 fake slow collectors prove the budget and isolation.
-Matching is synchronous CPU inside the event loop: with the shipped 24 patterns it is ~3 ms per
-domain, but measured at ~530 ms per domain against the full 13,373-pattern upstream database, so
-if `--fingerprints` is ever pointed at that in a timed run the matcher must move off the loop.
+Parsing and matching are both synchronous CPU inside the event loop. The tolerant HTML parse
+measures ~370 ms on a body at the 2 MB cap, and matching is ~3 ms per domain with the shipped 24
+patterns but ~530 ms against the full 13,373-pattern upstream database. Under bounded concurrency
+that CPU serialises, so if either grows the work belongs on a thread.
 **E2E:** live, twice; target < 30 s. Docker run (`make docker-scan`) must match the local run.
 
 ## [ ] 9. Final submission run, output.json, README architecture

@@ -60,7 +60,8 @@ src/techscope/
       models.py                        FetchResult, FetchFailure (adapter-private records)
       homepage_fetcher.py              HomepageFetcher: httpx, https→http fallback, redirects, body cap
       soft_block.py                    decide_block_reason_or_none (403/429/503, challenge pages)
-    extractors/                        PURE — FetchResult → tuple[Signal, ...], one channel each
+    extractors/                        PURE — ObservedResponse → tuple[Signal, ...], one channel each
+      observed_response.py             one tolerant HTML parse per response, shared by all of them
       headers.py  cookies.py  scripts.py  meta.py  html.py  jsglobals.py
       registry.py                      EXTRACTORS: the ordered tuple the HTTP collector runs
     dns/
