@@ -8,7 +8,7 @@ Status: `[ ]` todo · `[~]` in PR · `[x]` merged
 
 ---
 
-## [~] 1. Project scaffold, quality gate, CLI skeleton, Docker image
+## [~] 1. Project scaffold, quality gate, CLI skeleton, Docker image — PR #1
 **Goal:** a runnable, fully-linted, fully-typed, containerised empty project so every later PR is
 small and the architecture boundary is enforced from day one.
 **Acceptance:**
