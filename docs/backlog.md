@@ -62,7 +62,7 @@ small and the architecture boundary is enforced from day one.
   file for load time < 1 s).
 **E2E:** n/a.
 
-## [~] 3. Pure matcher core
+## [~] 3. Pure matcher core — PR #3
 **Goal:** `Signals × FingerprintIndex → Detections`, exhaustively tested, no I/O.
 **Acceptance:**
 - `domain/models.py`: `Signal(channel, value, key=None)`, `Evidence(channel, key,
