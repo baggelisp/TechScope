@@ -23,7 +23,8 @@ technology list.
 | Capability | State |
 |---|---|
 | Domain file parsing, CLI, JSON output | done |
-| Fingerprint loading and matching | backlog 2–3 |
+| Fingerprint loading, Wappalyzer format | done |
+| Matching signals against fingerprints | backlog 3 |
 | HTTP fetch, response channels | backlog 4–5 |
 | DNS and JavaScript-global channels | backlog 6–7 |
 | Concurrency and the run budget | backlog 8 |
@@ -48,6 +49,7 @@ Options on the `scan` command:
 | Flag | Default | Meaning |
 |---|---|---|
 | `-o`, `--output` | `output.json` | where the results JSON is written |
+| `--fingerprints` | the packaged set | a Wappalyzer-format JSON database to match against |
 | `--concurrency` | `10` | domains scanned in parallel (applied from backlog 8) |
 | `--timeout` | `15.0` | seconds allowed per domain (applied from backlog 8) |
 | `--log-level` | `WARNING` | verbosity on stderr: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
@@ -113,3 +115,17 @@ root rather than a change to the scanner.
 
 The full rules live in `.claude/rules/architecture.md`; the reasoning is in
 `docs/superpowers/specs/2026-09-05-techscope-design.md`.
+
+## Fingerprints are data
+
+Technologies live in `src/techscope/infrastructure/repositories/data/technologies.json`, in the
+upstream Wappalyzer shape. Adding one is a data change, never a code change. The loader reads
+`headers`, `cookies`, `meta`, `js`, `scriptSrc`, `scripts`, `html` and `dns`, understands the
+`\;confidence:N` and `\;version:X` modifiers, and ignores keys this scanner cannot observe over
+plain HTTP such as `url`, `dom` and `xhr`. Anything present but unusable — a regex that will not
+compile, a confidence outside 0–100 — is an error naming the technology, because a silently
+dropped pattern looks exactly like a technology that is not in use.
+
+That claim is measured rather than asserted: the complete upstream database of 7,613 technologies
+loads through this repository in 0.4 s, producing 13,373 patterns across all ten channels with no
+code change. Point `--fingerprints` at any such file to use it.

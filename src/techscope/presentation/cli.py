@@ -14,6 +14,7 @@ from pathlib import Path
 
 from techscope import bootstrap
 from techscope.domain.domain_list import build_domain_list
+from techscope.domain.errors import FingerprintLoadError
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class ScanArguments:
 
     domains_path: Path
     output_path: Path
+    fingerprints_path: Path
     concurrency: int
     timeout_seconds: float
     log_level: str
@@ -49,6 +51,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         return _run_scan_command(scan_arguments)
+    except FingerprintLoadError as error:
+        logger.error(
+            "the fingerprint database is unusable (%s): %s", error.technology, error.detail
+        )
+
+        return EXIT_USAGE
     except Exception:
         # Anything reaching here is a defect rather than a handled condition: log it with its
         # traceback for the bug report and return a code instead of propagating.
@@ -73,6 +81,7 @@ def _run_scan_command(scan_arguments: ScanArguments) -> int:
     options = bootstrap.ScanOptions(
         domains=domains,
         output_path=scan_arguments.output_path,
+        fingerprints_path=scan_arguments.fingerprints_path,
         concurrency=scan_arguments.concurrency,
         timeout_seconds=scan_arguments.timeout_seconds,
     )
@@ -103,6 +112,7 @@ def _read_domains_text_or_none(domains_path: Path) -> str | None:
 def _build_scan_arguments(namespace: argparse.Namespace) -> ScanArguments:
     domains_file: str = namespace.domains_file
     output: str = namespace.output
+    fingerprints: str = namespace.fingerprints
     concurrency: int = namespace.concurrency
     timeout: float = namespace.timeout
     log_level: str = namespace.log_level
@@ -110,6 +120,7 @@ def _build_scan_arguments(namespace: argparse.Namespace) -> ScanArguments:
     return ScanArguments(
         domains_path=Path(domains_file),
         output_path=Path(output),
+        fingerprints_path=Path(fingerprints),
         concurrency=concurrency,
         timeout_seconds=timeout,
         log_level=log_level,
@@ -129,6 +140,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         default=DEFAULT_OUTPUT_PATH,
         help=f"where to write the results JSON (default: {DEFAULT_OUTPUT_PATH})",
+    )
+    scan.add_argument(
+        "--fingerprints",
+        default=str(bootstrap.DEFAULT_FINGERPRINTS_PATH),
+        help="Wappalyzer-format JSON database to match against (default: the packaged set)",
     )
     scan.add_argument(
         "--concurrency",

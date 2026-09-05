@@ -8,7 +8,7 @@ Status: `[ ]` todo · `[~]` in PR · `[x]` merged
 
 ---
 
-## [~] 1. Project scaffold, quality gate, CLI skeleton, Docker image — PR #1
+## [x] 1. Project scaffold, quality gate, CLI skeleton, Docker image — PR #1
 **Goal:** a runnable, fully-linted, fully-typed, containerised empty project so every later PR is
 small and the architecture boundary is enforced from day one.
 **Acceptance:**
@@ -41,7 +41,7 @@ small and the architecture boundary is enforced from day one.
   checker rejects a forbidden import).
 **E2E:** n/a.
 
-## [ ] 2. Fingerprint model and Wappalyzer-format repository
+## [~] 2. Fingerprint model and Wappalyzer-format repository — PR #2
 **Goal:** fingerprints are data in the real Wappalyzer shape; the 24 assignment patterns load.
 **Acceptance:**
 - `domain/enums.py`: `ChannelEnum` (moved from feature 1 — this is its first consumer).
@@ -68,7 +68,9 @@ small and the architecture boundary is enforced from day one.
 - `domain/models.py`: `Signal(channel, value, key=None)`, `Evidence(channel, key,
   pattern_source, matched_text)`, `Detection(name, confidence, evidence)`.
 - `domain/matcher.match_signals(signals, index) -> tuple[Detection, ...]`: per-channel lookup,
-  key regex + value regex semantics per spec §4, confidence = max over matched patterns,
+  key regex + value regex semantics per spec §4 — the key is matched with `re.match` and the
+  value with `re.search`; using `re.search` on the key reports F5 BigIP on every WordPress site,
+  so a test must pin that case. Confidence = max over matched patterns,
   threshold 50, `implies` at the implier's confidence, sorted by name, no duplicates.
 - Positive + near-miss negative test per assignment fingerprint; header-key case
   insensitivity; `X-Stripe-.*` key regex; `^intercom-` cookie name; `js` patterns match

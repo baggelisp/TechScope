@@ -1,0 +1,110 @@
+{
+  "Cloudflare": {
+    "headers": {
+      "cf-ray": "",
+      "cf-cache-status": ""
+    }
+  },
+  "Drift": {
+    "scriptSrc": [
+      "js\\.driftt\\.com"
+    ]
+  },
+  "Google Analytics 4": {
+    "scriptSrc": [
+      "google-analytics\\.com/g/collect"
+    ],
+    "scripts": [
+      "gtag\\("
+    ]
+  },
+  "Google Workspace": {
+    "dns": {
+      "MX": [
+        "google\\.com"
+      ]
+    }
+  },
+  "Hotjar": {
+    "scriptSrc": [
+      "static\\.hotjar\\.com"
+    ]
+  },
+  "HubSpot": {
+    "scriptSrc": [
+      "//js\\.hs-scripts\\.com/",
+      "//js\\.hsforms\\.net/"
+    ],
+    "dns": {
+      "TXT": [
+        "hubspot-developer-verification"
+      ]
+    }
+  },
+  "Intercom": {
+    "scriptSrc": [
+      "widget\\.intercom\\.io/"
+    ],
+    "cookies": {
+      "^intercom-": ""
+    }
+  },
+  "Microsoft 365": {
+    "dns": {
+      "MX": [
+        "protection\\.outlook\\.com"
+      ]
+    }
+  },
+  "Salesforce": {
+    "dns": {
+      "CNAME": [
+        "\\.salesforce\\.com"
+      ]
+    }
+  },
+  "Segment": {
+    "scriptSrc": [
+      "cdn\\.segment\\.com/analytics\\.js"
+    ]
+  },
+  "SendGrid": {
+    "dns": {
+      "TXT": [
+        "sendgrid\\.net"
+      ]
+    }
+  },
+  "Sentry": {
+    "scriptSrc": [
+      "browser\\.sentry-cdn\\.com"
+    ]
+  },
+  "Shopify": {
+    "html": [
+      "cdn\\.shopify\\.com"
+    ],
+    "headers": {
+      "X-ShopId": ""
+    }
+  },
+  "Stripe": {
+    "scriptSrc": [
+      "js\\.stripe\\.com/v3"
+    ],
+    "headers": {
+      "X-Stripe-.*": ""
+    }
+  },
+  "WordPress": {
+    "html": [
+      "/wp-content/",
+      "/wp-includes/"
+    ]
+  },
+  "Zendesk": {
+    "scriptSrc": [
+      "static\\.zdassets\\.com"
+    ]
+  }
+}
