@@ -92,7 +92,7 @@ challenge pages, keeping headers. `application/ports/signal_collector.py` (`Sign
 `bootstrap.py` with no extractors yet. Tests with `respx`.
 **E2E:** first live run — sequential is fine; verify 20/20 domains present and no crash.
 
-## [~] 5. Response extractors: headers, cookies, script src, meta, html
+## [~] 5. Response extractors: headers, cookies, script src, meta, html — PR #5
 **Goal:** five pure extractors from `FetchResult` → `tuple[Signal, ...]`.
 **Acceptance:** `infrastructure/extractors/headers.py`, `cookies.py` (names from every
 `Set-Cookie`), `scripts.py` (`<script src>` incl. protocol-relative and unquoted attrs; inline
