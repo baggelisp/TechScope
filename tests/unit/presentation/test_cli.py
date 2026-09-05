@@ -1,11 +1,22 @@
-"""The argparse driver: argument handling, file reading, exit codes."""
+"""The argparse driver: argument handling, file reading, exit codes.
+
+Every scan here runs through the real fetch path, so every test mocks the transport. A unit
+test that reaches the internet is a bug.
+"""
 
 import json
 from pathlib import Path
 
+import httpx
 import pytest
+import respx
 
 from techscope.presentation.cli import EXIT_OK, EXIT_UNEXPECTED, EXIT_USAGE, main
+
+
+def mock_every_host() -> None:
+    """Any homepage answers with a page that matches no fingerprint."""
+    respx.route().mock(return_value=httpx.Response(200, text="<html><body>ok</body></html>"))
 
 
 def write_domains_file(directory: Path, text: str) -> Path:
@@ -15,7 +26,9 @@ def write_domains_file(directory: Path, text: str) -> Path:
     return domains_file
 
 
+@respx.mock
 def test_cli_scan_writes_an_empty_technology_list_for_every_domain(tmp_path: Path) -> None:
+    mock_every_host()
     domains_file = write_domains_file(tmp_path, "notion.so\nstripe.com\n")
     output_path = tmp_path / "output.json"
 
@@ -28,7 +41,9 @@ def test_cli_scan_writes_an_empty_technology_list_for_every_domain(tmp_path: Pat
     }
 
 
+@respx.mock
 def test_cli_scan_normalises_and_deduplicates_the_input_file(tmp_path: Path) -> None:
+    mock_every_host()
     domains_file = write_domains_file(
         tmp_path, "# assignment domains\n\nhttps://www.Stripe.com/pricing\nstripe.com\nnotion.so\n"
     )
@@ -40,7 +55,9 @@ def test_cli_scan_normalises_and_deduplicates_the_input_file(tmp_path: Path) -> 
     assert list(json.loads(output_path.read_text(encoding="utf-8"))) == ["stripe.com", "notion.so"]
 
 
+@respx.mock
 def test_cli_scan_accepts_the_concurrency_timeout_and_log_level_flags(tmp_path: Path) -> None:
+    mock_every_host()
     domains_file = write_domains_file(tmp_path, "stripe.com\n")
     output_path = tmp_path / "output.json"
 
@@ -96,7 +113,9 @@ def test_cli_scan_file_without_usable_domains_returns_the_usage_exit_code(tmp_pa
     assert exit_code == EXIT_USAGE
 
 
+@respx.mock
 def test_cli_scan_unwritable_output_returns_the_unexpected_exit_code(tmp_path: Path) -> None:
+    mock_every_host()
     domains_file = write_domains_file(tmp_path, "stripe.com\n")
     unwritable_path = tmp_path / "absent-directory" / "output.json"
 
@@ -124,7 +143,9 @@ def test_cli_scan_broken_fingerprint_database_returns_the_usage_exit_code(tmp_pa
     assert exit_code == EXIT_USAGE
 
 
+@respx.mock
 def test_cli_scan_accepts_an_alternative_fingerprint_database(tmp_path: Path) -> None:
+    mock_every_host()
     domains_file = write_domains_file(tmp_path, "stripe.com\n")
     fingerprints_file = tmp_path / "technologies.json"
     fingerprints_file.write_text('{"Some Tech": {"scriptSrc": "a"}}', encoding="utf-8")

@@ -9,7 +9,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from techscope.domain.enums import ChannelEnum
+from techscope.domain.enums import BlockReasonEnum, ChannelEnum, FailureReasonEnum
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,11 +110,28 @@ class Detection:
 
 
 @dataclass(frozen=True, slots=True)
+class CollectionFailure:
+    """One collector could not do its whole job for one domain.
+
+    A failure never replaces the signals a collector did manage to gather: a soft-blocked host
+    still hands back its response headers.
+    """
+
+    collector: str
+    reason: BlockReasonEnum | FailureReasonEnum
+    detail: str
+
+
+@dataclass(frozen=True, slots=True)
 class DomainScanResult:
-    """What one scanned domain produced: the technologies detected on it."""
+    """What one scanned domain produced: its detections, and anything that went wrong."""
 
     domain: str
-    technologies: tuple[str, ...]
+    detections: tuple[Detection, ...]
+    failures: tuple[CollectionFailure, ...]
+
+    def list_technology_names(self) -> tuple[str, ...]:
+        return tuple(detection.name for detection in self.detections)
 
 
 @dataclass(frozen=True, slots=True)

@@ -3,14 +3,20 @@
 import json
 from pathlib import Path
 
-from techscope.domain.models import DomainScanResult, ScanReport
+from techscope.domain.models import Detection, DomainScanResult, ScanReport
 from techscope.infrastructure.writers.json_report_writer import JsonReportWriter
 
 
-def build_report(*domains: str) -> ScanReport:
-    results = tuple(DomainScanResult(domain=domain, technologies=()) for domain in domains)
+def build_result(domain: str, *technologies: str) -> DomainScanResult:
+    detections = tuple(
+        Detection(name=technology, confidence=100, evidence=()) for technology in technologies
+    )
 
-    return ScanReport(results=results)
+    return DomainScanResult(domain=domain, detections=detections, failures=())
+
+
+def build_report(*domains: str) -> ScanReport:
+    return ScanReport(results=tuple(build_result(domain) for domain in domains))
 
 
 def test_json_report_writer_writes_an_empty_list_for_every_domain(tmp_path: Path) -> None:
@@ -36,9 +42,7 @@ def test_json_report_writer_preserves_domain_order(tmp_path: Path) -> None:
 
 def test_json_report_writer_serialises_technologies_as_a_list(tmp_path: Path) -> None:
     destination = tmp_path / "output.json"
-    report = ScanReport(
-        results=(DomainScanResult(domain="stripe.com", technologies=("Cloudflare", "Stripe")),)
-    )
+    report = ScanReport(results=(build_result("stripe.com", "Cloudflare", "Stripe"),))
 
     JsonReportWriter().write(report, destination)
 

@@ -32,3 +32,29 @@ KEYED_CHANNELS = frozenset(
         ChannelEnum.JS_GLOBAL,
     }
 )
+
+
+class BlockReasonEnum(StrEnum):
+    """Why a host refused to serve its homepage normally.
+
+    A block is data rather than an error: the response headers that came with it are still
+    evidence, and a Cloudflare challenge proves Cloudflare.
+    """
+
+    FORBIDDEN = "forbidden"
+    RATE_LIMITED = "rate_limited"
+    SERVICE_UNAVAILABLE = "service_unavailable"
+    CHALLENGE_PAGE = "challenge_page"
+    EMPTY_BODY = "empty_body"
+
+
+class FailureReasonEnum(StrEnum):
+    """Why nothing at all could be collected for a domain."""
+
+    CONNECTION_FAILED = "connection_failed"
+    TIMEOUT = "timeout"
+    TOO_MANY_REDIRECTS = "too_many_redirects"
+    INVALID_HOST = "invalid_host"
+    INVALID_RESPONSE = "invalid_response"
+    DNS_UNRESOLVED = "dns_unresolved"
+    COLLECTOR_ERROR = "collector_error"
