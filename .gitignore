@@ -1,0 +1,23 @@
+# Python / uv (feature 1 extends this)
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+
+# E2E run artefacts (output.json IS committed — it is the submission)
+e2e.log
+output.details.json
+
+# Web viewer (backlog item 10)
+web/node_modules/
+web/.next/
+web/out/
+
+# Local Claude state
+.claude/settings.local.json
+
+# The assignment brief stays local — not ours to publish
+assigment/
