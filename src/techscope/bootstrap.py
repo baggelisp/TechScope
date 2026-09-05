@@ -8,14 +8,22 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from techscope.application.ports.fingerprint_repository import FingerprintRepository
 from techscope.application.ports.scan_report_writer import ScanReportWriter
-from techscope.domain.models import DomainScanResult, ScanReport
+from techscope.domain.matcher import build_fingerprint_index
+from techscope.domain.models import DomainScanResult, FingerprintIndex, ScanReport
+from techscope.infrastructure.repositories.json_fingerprint_repository import (
+    DEFAULT_TECHNOLOGIES_PATH,
+    JsonFingerprintRepository,
+)
 from techscope.infrastructure.writers.json_report_writer import JsonReportWriter
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONCURRENCY = 10
 DEFAULT_TIMEOUT_SECONDS = 15.0
+# Re-exported so the CLI can offer it as a default without importing infrastructure.
+DEFAULT_FINGERPRINTS_PATH = DEFAULT_TECHNOLOGIES_PATH
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,26 +32,45 @@ class ScanOptions:
 
     domains: tuple[str, ...]
     output_path: Path
+    fingerprints_path: Path
     concurrency: int
     timeout_seconds: float
 
 
 def run_scan(options: ScanOptions) -> ScanReport:
     """Run one scan end to end and persist its report."""
-    report = _build_unscanned_report(options.domains)
+    index = _load_fingerprint_index(options.fingerprints_path)
+    report = _build_unscanned_report(options.domains, index)
     writer: ScanReportWriter = JsonReportWriter()
     writer.write(report, options.output_path)
 
     return report
 
 
-def _build_unscanned_report(domains: tuple[str, ...]) -> ScanReport:
+def _load_fingerprint_index(fingerprints_path: Path) -> FingerprintIndex:
+    repository: FingerprintRepository = JsonFingerprintRepository(fingerprints_path)
+    fingerprints = repository.load()
+    index = build_fingerprint_index(fingerprints)
+    logger.info(
+        "loaded %d technologies across %d channels",
+        len(fingerprints),
+        len(index.patterns_by_channel),
+    )
+
+    return index
+
+
+def _build_unscanned_report(domains: tuple[str, ...], index: FingerprintIndex) -> ScanReport:
     """Placeholder for the collectors and the matcher.
 
     Backlog item 4 replaces this with ``ScanDomainUseCase``, driven by ``ScanDomainsUseCase``
-    from item 8. Until a collector exists there is nothing to detect, so every domain reports
-    an empty technology list — which is already the shape the assignment asks for.
+    from item 8, and the index is what those pass to ``match_signals``. Until a collector emits
+    a signal there is nothing to match, so every domain reports an empty technology list — which
+    is already the shape the assignment asks for.
     """
+    logger.debug(
+        "matching against %d channels once collectors exist", len(index.patterns_by_channel)
+    )
     results = tuple(DomainScanResult(domain=domain, technologies=()) for domain in domains)
 
     return ScanReport(results=results)

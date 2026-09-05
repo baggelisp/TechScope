@@ -83,9 +83,18 @@ Assignment-to-Wappalyzer mapping of the 24 given patterns: `[script]` → `scrip
 - A pattern matches with `re.search` on each `Signal.value` of its channel.
 - **Keyed channels:** Wappalyzer keys are literal names, but the assignment supplies regex-shaped
   names (`X-Stripe-.*`, `^intercom-`). We therefore treat the key as a case-insensitive regex
-  matched with `re.search` against `Signal.key`, and the value pattern (empty = "any value") with
-  `re.search` against `Signal.value`. A literal Wappalyzer key is a valid regex, so the full
-  database still loads unchanged. This is a documented superset of Wappalyzer semantics.
+  against `Signal.key`, and the value pattern (empty = "any value") with `re.search` against
+  `Signal.value`. A literal Wappalyzer key is a valid regex, so the full database still loads
+  unchanged. This is a documented superset of Wappalyzer semantics.
+- **The key is matched with `re.match`, not `re.search`.** Anchoring at the start is what keeps
+  the superset honest. Unanchored, a literal upstream key becomes a substring test: the F5 BigIP
+  cookie key `TIN` matches the ordinary WordPress cookie `wp-settings-time-1`, so every WordPress
+  site would be reported as running F5 BigIP, and `cf-ray` would match a header named
+  `x-cf-ray-original`. `re.fullmatch` would reject both but also breaks the assignment's own
+  prefix pattern `^intercom-`. `re.match` is the only choice that keeps all five shipped keyed
+  patterns working while rejecting both false positives. An empty *value* pattern stays legal on
+  a keyed channel, where it means "this header exists"; on a keyless channel it would match every
+  page, so the loader rejects it.
 - A technology's confidence is the max over its matched patterns (default 100); reported only
   when ≥ 50. `implies` adds implied technologies at the implier's confidence.
 - Detections carry `Evidence(channel, key, pattern_source, matched_text)` so every reported

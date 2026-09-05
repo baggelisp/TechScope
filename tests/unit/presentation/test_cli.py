@@ -105,6 +105,46 @@ def test_cli_scan_unwritable_output_returns_the_unexpected_exit_code(tmp_path: P
     assert exit_code == EXIT_UNEXPECTED
 
 
+def test_cli_scan_broken_fingerprint_database_returns_the_usage_exit_code(tmp_path: Path) -> None:
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+    fingerprints_file = tmp_path / "technologies.json"
+    fingerprints_file.write_text('{"Broken Tech": {"scriptSrc": "unclosed("}}', encoding="utf-8")
+
+    exit_code = main(
+        [
+            "scan",
+            str(domains_file),
+            "-o",
+            str(tmp_path / "output.json"),
+            "--fingerprints",
+            str(fingerprints_file),
+        ]
+    )
+
+    assert exit_code == EXIT_USAGE
+
+
+def test_cli_scan_accepts_an_alternative_fingerprint_database(tmp_path: Path) -> None:
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+    fingerprints_file = tmp_path / "technologies.json"
+    fingerprints_file.write_text('{"Some Tech": {"scriptSrc": "a"}}', encoding="utf-8")
+    output_path = tmp_path / "output.json"
+
+    exit_code = main(
+        [
+            "scan",
+            str(domains_file),
+            "-o",
+            str(output_path),
+            "--fingerprints",
+            str(fingerprints_file),
+        ]
+    )
+
+    assert exit_code == EXIT_OK
+    assert json.loads(output_path.read_text(encoding="utf-8")) == {"stripe.com": []}
+
+
 def test_cli_without_a_subcommand_exits_with_the_usage_code() -> None:
     with pytest.raises(SystemExit) as raised:
         main([])
