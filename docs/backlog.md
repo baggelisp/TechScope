@@ -77,7 +77,7 @@ small and the architecture boundary is enforced from day one.
   `JS_GLOBAL` names; `scripts` patterns match `SCRIPT_INLINE` bodies.
 **E2E:** n/a.
 
-## [~] 4. HTTP fetcher with redirect, timeout, and soft-block handling
+## [~] 4. HTTP fetcher with redirect, timeout, and soft-block handling — PR #4
 **Goal:** one polite, bounded, non-crashing homepage fetch per domain.
 **Acceptance:** `domain/enums.py` gains `BlockReasonEnum` and `FailureReasonEnum` (moved from
 feature 1 — the first failures appear here). Then, per `network-etiquette.md` —
