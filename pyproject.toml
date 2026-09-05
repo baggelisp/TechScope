@@ -1,0 +1,59 @@
+[project]
+name = "techscope"
+version = "0.1.0"
+description = "Technographic scanner: detect the technologies a domain uses from public HTTP and DNS signals."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dnspython>=2.7",
+    "httpx>=0.28",
+]
+
+[project.scripts]
+techscope = "techscope.presentation.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "respx>=0.22",
+    "ruff>=0.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/techscope"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+# Recent ruff versions also format Python blocks inside Markdown; the rules and docs in this
+# repository are prose and must not be rewritten by the formatter.
+include = ["*.py", "*.pyi", "pyproject.toml"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RET", "ARG", "PTH", "C4", "ISC", "TID", "RUF"]
+# SIM108 (ternary) and RET504 (assign-then-return) contradict the house style in
+# .claude/rules/python-style.md, which requires named intermediates over inline conditionals.
+# ISC001 conflicts with the formatter.
+ignore = ["SIM108", "RET504", "ISC001"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.mypy]
+python_version = "3.13"
+files = ["src", "tests"]
+strict = true
+warn_unreachable = true
+disallow_any_explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-m 'not live' --strict-markers"
+markers = ["live: touches the real internet; run only by make e2e"]
