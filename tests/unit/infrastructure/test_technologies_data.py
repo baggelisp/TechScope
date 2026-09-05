@@ -25,7 +25,9 @@ ASSIGNMENT_PATTERNS = [
     ("Google Analytics 4", ChannelEnum.SCRIPT_SRC, r"google-analytics\.com/g/collect"),
     ("Google Analytics 4", ChannelEnum.SCRIPT_INLINE, r"gtag\("),
     ("Intercom", ChannelEnum.SCRIPT_SRC, r"widget\.intercom\.io/"),
-    ("Intercom", ChannelEnum.COOKIE, r"^intercom-"),
+    # The brief writes this as `^intercom-`; the trailing `.*` spells out the prefix that
+    # was already meant, because a keyed pattern must name the signal end to end.
+    ("Intercom", ChannelEnum.COOKIE, r"^intercom-.*"),
     ("Cloudflare", ChannelEnum.HEADER, r"cf-ray"),
     ("Cloudflare", ChannelEnum.HEADER, r"cf-cache-status"),
     ("WordPress", ChannelEnum.HTML, r"/wp-content/"),

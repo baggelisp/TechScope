@@ -46,7 +46,7 @@
       "widget\\.intercom\\.io/"
     ],
     "cookies": {
-      "^intercom-": ""
+      "^intercom-.*": ""
     }
   },
   "Microsoft 365": {

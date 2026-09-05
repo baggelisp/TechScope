@@ -1,7 +1,8 @@
 """Records shared across layers. Frozen, slotted, and free of any I/O concern.
 
-Later features add ``Signal``, ``Evidence`` and ``Detection`` here; this feature covers the
-fingerprint side of the matcher.
+Two halves meet in the matcher: ``Signal`` is what a collector observed, ``Pattern`` and
+``Fingerprint`` are what the database says to look for, and ``Detection`` with its ``Evidence``
+is the answer.
 """
 
 import re
@@ -26,6 +27,16 @@ class Pattern:
     version_template: str | None
     value_source: str
     key_source: str | None
+
+    def decide_source_text(self) -> str:
+        """How this pattern reads in a detection's evidence."""
+        if self.key_source is None:
+            return self.value_source
+
+        if len(self.value_source) == 0:
+            return self.key_source
+
+        return f"{self.key_source}: {self.value_source}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +74,39 @@ class FingerprintIndex:
 
     def decide_fingerprint_or_none(self, name: str) -> Fingerprint | None:
         return self.fingerprint_by_name.get(name)
+
+
+@dataclass(frozen=True, slots=True)
+class Signal:
+    """One observation, whatever collected it.
+
+    ``key`` names the observation on a keyed channel — a header name, a cookie name, a meta tag
+    name, a JavaScript global — and is ``None`` on the rest. The matcher never learns which
+    collector produced a signal, which is what lets a new source be a new adapter alone.
+    """
+
+    channel: ChannelEnum
+    value: str
+    key: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Evidence:
+    """Why a technology was reported: the signal that matched and the pattern that matched it."""
+
+    channel: ChannelEnum
+    key: str | None
+    pattern_source: str
+    matched_text: str
+
+
+@dataclass(frozen=True, slots=True)
+class Detection:
+    """One technology found on one domain, with everything needed to justify it."""
+
+    name: str
+    confidence: int
+    evidence: tuple[Evidence, ...]
 
 
 @dataclass(frozen=True, slots=True)
