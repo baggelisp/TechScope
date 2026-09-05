@@ -1,13 +1,16 @@
-"""The HTTP source of signals: one homepage fetch, then the response extractors.
+"""The HTTP source of signals: one homepage fetch, one document parse, then every extractor.
 
-The extractors arrive with backlog item 5. Until then this collector proves the fetch path and
-reports what the fetch found, which is already enough to record every block and failure.
+A soft-blocked response still goes through the extractors: its headers are real evidence, and a
+Cloudflare challenge proves Cloudflare.
 """
 
 import logging
+from itertools import chain
 
 from techscope.application.ports.signal_collector import CollectionResult
-from techscope.domain.models import CollectionFailure
+from techscope.domain.models import CollectionFailure, Signal
+from techscope.infrastructure.extractors.observed_response import build_observed_response
+from techscope.infrastructure.extractors.registry import EXTRACTORS
 from techscope.infrastructure.http.homepage_fetcher import HomepageFetcher
 from techscope.infrastructure.http.models import FetchFailure, FetchResult
 
@@ -34,7 +37,18 @@ class HttpSignalCollector:
 
             return CollectionResult(signals=(), failure=_build_failure(outcome))
 
-        return CollectionResult(signals=(), failure=_decide_block_failure_or_none(domain, outcome))
+        signals = _extract_signals(outcome)
+        logger.debug("%s produced %d signals", domain, len(signals))
+
+        return CollectionResult(
+            signals=signals, failure=_decide_block_failure_or_none(domain, outcome)
+        )
+
+
+def _extract_signals(result: FetchResult) -> tuple[Signal, ...]:
+    observed = build_observed_response(result)
+
+    return tuple(chain.from_iterable(extractor(observed) for extractor in EXTRACTORS))
 
 
 def _build_failure(failure: FetchFailure) -> CollectionFailure:

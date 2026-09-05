@@ -12,7 +12,8 @@ class FetchResult:
     ``block_reason`` is set when the host refused in a way that still told us something:
     the headers are kept either way, because a Cloudflare challenge proves Cloudflare.
     Headers are name/value pairs rather than a mapping so that repeated names — every
-    ``Set-Cookie`` — survive.
+    ``Set-Cookie`` — survive, and their names are lowercased: the cookie extractor looks for
+    ``set-cookie`` exactly.
     """
 
     final_url: str

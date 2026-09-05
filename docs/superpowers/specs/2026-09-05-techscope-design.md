@@ -78,6 +78,25 @@ Assignment-to-Wappalyzer mapping of the 24 given patterns: `[script]` → `scrip
 `gtag\(` which can only occur in inline script text and goes to `scripts`; `[header]` → `headers`;
 `[cookie]` → `cookies`; `[html]` → `html`; `[dns_mx|txt|cname]` → `dns.MX|TXT|CNAME`.
 
+**A script URL is matched only as a src attribute, never in script text.** Widening it was tried
+and reverted on evidence. Three of the assignment's own domains load their vendor by writing the
+URL from an inline loader rather than as a src, so matching script text would have added Segment
+on segment.com and sendgrid.com, and Zendesk on zendesk.com. It would also have added **Sentry on
+sentry.io, which is false**: that page serialises its own onboarding documentation into a script
+element, and the only occurrence of `browser.sentry-cdn.com` is a markdown code sample containing
+a literal `<VERSION>` placeholder, with no corresponding script src anywhere on the page. The
+brief's own channel list says "HTML `<script>` src attributes", and its stated priority is that a
+technology be reported only on strong evidence. A URL sitting in arbitrary script text is not
+that. The channel the brief provides for loader-based vendors is `window.*` globals; the 24 given
+fingerprints contain no `js` patterns, so those vendors are simply not detectable with this set —
+an honest limitation of the given data rather than something to paper over in the matcher.
+
+**Only executable script counts as script.** A `<script>` element whose `type` is not a
+JavaScript type — `application/json`, `application/ld+json`, `text/template` — is page data, not
+code. Server-rendered frameworks serialise a page's own editorial copy into exactly those, so
+treating them as script text would match vendor URLs in prose. The parser skips them, which also
+keeps the JavaScript-global scan of feature 7 out of JSON blobs.
+
 ## 4. Matching and accuracy
 
 - A pattern matches with `re.search` on each `Signal.value` of its channel.

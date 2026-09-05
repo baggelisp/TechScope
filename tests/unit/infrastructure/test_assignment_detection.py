@@ -151,6 +151,14 @@ DETECTION_CASES = [
     ),
 ]
 
+
+def decide_case_label(key: str | None, value: str) -> str:
+    if key is not None:
+        return key
+
+    return value[:44]
+
+
 # A near miss on a keyed pattern is a wrong name rather than a wrong value: the assignment's
 # header and cookie patterns accept any value.
 KEYED_NEAR_MISS_KEYS = {
@@ -162,7 +170,7 @@ KEYED_NEAR_MISS_KEYS = {
 }
 
 CASE_IDS = [
-    f"{technology} via {channel}: {(key or value)[:44]}"
+    f"{technology} via {channel}: {decide_case_label(key, value)}"
     for technology, channel, key, value, _ in DETECTION_CASES
 ]
 

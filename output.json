@@ -1,22 +1,52 @@
 {
-  "notion.so": [],
-  "stripe.com": [],
+  "notion.so": [
+    "Cloudflare"
+  ],
+  "stripe.com": [
+    "Stripe"
+  ],
   "intercom.com": [],
-  "shopify.com": [],
-  "hubspot.com": [],
-  "linear.app": [],
+  "shopify.com": [
+    "Cloudflare",
+    "Shopify"
+  ],
+  "hubspot.com": [
+    "Cloudflare"
+  ],
+  "linear.app": [
+    "Cloudflare"
+  ],
   "vercel.com": [],
   "figma.com": [],
-  "webflow.com": [],
+  "webflow.com": [
+    "Cloudflare"
+  ],
   "loom.com": [],
-  "pipedrive.com": [],
-  "typeform.com": [],
-  "calendly.com": [],
-  "segment.com": [],
+  "pipedrive.com": [
+    "Cloudflare"
+  ],
+  "typeform.com": [
+    "Cloudflare",
+    "Google Analytics 4"
+  ],
+  "calendly.com": [
+    "Cloudflare"
+  ],
+  "segment.com": [
+    "Google Analytics 4"
+  ],
   "hotjar.com": [],
-  "drift.com": [],
-  "zendesk.com": [],
-  "mailchimp.com": [],
-  "sendgrid.com": [],
+  "drift.com": [
+    "Cloudflare"
+  ],
+  "zendesk.com": [
+    "Cloudflare"
+  ],
+  "mailchimp.com": [
+    "Google Analytics 4"
+  ],
+  "sendgrid.com": [
+    "Google Analytics 4"
+  ],
   "sentry.io": []
 }
