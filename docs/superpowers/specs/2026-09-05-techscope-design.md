@@ -161,7 +161,7 @@ layout makes the web app a second driver of the same use cases, not a second imp
   concurrency?, timeout?}`, runs `ScanDomainsUseCase` synchronously under the same deadline as
   the CLI, and returns the details shape from the shared presenter. `GET /fingerprints` lists
   the loaded technologies and their channels. `GET /health`. Domains are normalised with the
-  same `normalise_domain` as the CLI; the list is capped (default 50) to keep a request bounded.
+  same `decide_domain_or_none` the CLI applies per line; the list is capped (default 50) to keep a request bounded.
   Dependencies `fastapi` + `uvicorn` live in an optional extra `techscope[api]` so the graded
   CLI install stays `httpx` + `dnspython` only. Tests use FastAPI's `TestClient` with a fake
   `ScanService` injected through `create_app(service=...)` — no network, no real adapters.

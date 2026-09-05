@@ -1,0 +1,16 @@
+# The `api` and `web` services arrive with backlog items 10 and 11.
+services:
+  scan:
+    profiles: ["cli"]
+    build:
+      context: .
+      target: cli
+    image: techscope:local
+    # The repository is mounted at /data so the domains file is readable and the
+    # results land back in the working tree.
+    volumes:
+      - .:/data
+    # On Linux a bind mount keeps host ownership, so the container needs the host identity
+    # to write output.json: DOCKER_USER="$(id -u):$(id -g)" docker compose ...
+    user: "${DOCKER_USER:-1000:1000}"
+    command: ["scan", "docs/domains.txt", "-o", "output.json", "--log-level", "INFO"]

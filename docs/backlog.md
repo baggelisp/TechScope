@@ -8,7 +8,7 @@ Status: `[ ]` todo · `[~]` in PR · `[x]` merged
 
 ---
 
-## [ ] 1. Project scaffold, quality gate, CLI skeleton, Docker image
+## [~] 1. Project scaffold, quality gate, CLI skeleton, Docker image
 **Goal:** a runnable, fully-linted, fully-typed, containerised empty project so every later PR is
 small and the architecture boundary is enforced from day one.
 **Acceptance:**
@@ -18,10 +18,10 @@ small and the architecture boundary is enforced from day one.
 - Layer packages created with `__init__.py`: `domain`, `application/ports`,
   `application/use_cases`, `infrastructure/{http,extractors,dns,collectors,repositories,writers}`,
   `presentation`, plus `bootstrap.py` and `__main__.py`.
-- `domain/enums.py` (`ChannelEnum`, `BlockReasonEnum`, `FailureReasonEnum`), `domain/errors.py`
-  (`TechScopeError`), `domain/domain_name.py` (`normalise_domain`, `decide_apex_domain`),
-  `domain/models.py` with `ScanReport` / `DomainScanResult` only (the rest arrive with their
-  features).
+- `domain/domain_name.py` (`decide_domain_or_none`), `domain/domain_list.py`
+  (`build_domain_list`), `domain/models.py` with `ScanReport` / `DomainScanResult` only. The
+  enums, `errors.py` and `decide_apex_domain` move to the features that consume them (2, 4, 6):
+  writing them here would ship untested code with no caller.
 - `application/ports/scan_report_writer.py` + `infrastructure/writers/json_report_writer.py`.
 - `presentation/cli.py`: `techscope scan <file> -o <out>` parses the domain file (strip, skip
   blanks/comments, dedupe, lowercase, strip scheme/`www.`/path/port) and writes
@@ -36,13 +36,16 @@ small and the architecture boundary is enforced from day one.
   (`api`/`web` services arrive with items 10–11). `make docker-build && make docker-scan`
   produces the same `output.json` as the local run.
 - `README.md` with install, run (local + Docker); `.gitignore` completed.
-- Tests: domain-file parsing cases, `normalise_domain`/`decide_apex_domain`, CLI writes valid
-  JSON, exit codes, architecture rule.
+- Tests: domain-file parsing cases, `decide_domain_or_none` / `build_domain_list`, the JSON
+  writer, CLI exit codes, and the architecture rule (including negative cases proving the
+  checker rejects a forbidden import).
 **E2E:** n/a.
 
 ## [ ] 2. Fingerprint model and Wappalyzer-format repository
 **Goal:** fingerprints are data in the real Wappalyzer shape; the 24 assignment patterns load.
 **Acceptance:**
+- `domain/enums.py`: `ChannelEnum` (moved from feature 1 — this is its first consumer).
+- `domain/errors.py`: `TechScopeError` base and `FingerprintLoadError` (moved from feature 1).
 - `domain/models.py`: `Pattern` (channel, compiled value regex with `re.I`, optional compiled
   key regex, `confidence` 0–100 default 100, optional `version` template, `source` text),
   `Fingerprint` (name, patterns, `implies`, `categories`), `FingerprintIndex`
@@ -74,7 +77,9 @@ small and the architecture boundary is enforced from day one.
 
 ## [ ] 4. HTTP fetcher with redirect, timeout, and soft-block handling
 **Goal:** one polite, bounded, non-crashing homepage fetch per domain.
-**Acceptance:** per `network-etiquette.md` — `infrastructure/http/homepage_fetcher.py`
+**Acceptance:** `domain/enums.py` gains `BlockReasonEnum` and `FailureReasonEnum` (moved from
+feature 1 — the first failures appear here). Then, per `network-etiquette.md` —
+`infrastructure/http/homepage_fetcher.py`
 (`HomepageFetcher` over an injected `httpx.AsyncClient`): https then http fallback, ≤ 5
 redirects, connect 5 s / read 10 s / total 15 s, honest UA, body cap 2 MB, retry once on
 transient errors; returns `FetchResult` (final URL, status, headers incl. all `Set-Cookie`, body
@@ -98,7 +103,9 @@ signal for each.
 
 ## [ ] 6. DNS collector
 **Goal:** MX / TXT / CNAME on the apex, concurrent with the fetch.
-**Acceptance:** `infrastructure/dns/resolver.py` (`Resolver` Protocol + `DnsPythonResolver`),
+**Acceptance:** `domain/domain_name.py` gains `decide_apex_domain` (moved from feature 1, where
+it had no caller; the public-suffix trade-off is decided here and documented in the README).
+`infrastructure/dns/resolver.py` (`Resolver` Protocol + `DnsPythonResolver`),
 `infrastructure/collectors/dns_collector.py` (`DnsSignalCollector`): apex via
 `decide_apex_domain`; 3 s timeout per record type; NXDOMAIN/NoAnswer/timeout → empty for that
 type, logged at DEBUG; TXT strings joined; CNAME chain first hop. `ScanDomainUseCase` runs both

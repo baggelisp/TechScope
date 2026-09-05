@@ -16,11 +16,11 @@ presentation ──► application ──► domain ◄── infrastructure
 
 | Layer | May import | Must never import |
 |---|---|---|
-| `domain/` | stdlib, `domain` | `application`, `infrastructure`, `presentation`, `httpx`, `dns`, `argparse`, `json` file I/O |
-| `application/` | stdlib, `domain`, `application` | `infrastructure`, `presentation`, `httpx`, `dns` |
-| `infrastructure/` | stdlib, `domain`, `application.ports`, `infrastructure`, `httpx`, `dns` | `application.use_cases`, `presentation` |
+| `domain/` | stdlib except `argparse`/`json`, `domain` | `application`, `infrastructure`, `presentation`, `httpx`, `dns`, `argparse`, `json` file I/O |
+| `application/` | stdlib except `argparse`/`json`, `domain`, `application` | `infrastructure`, `presentation`, `httpx`, `dns` |
+| `infrastructure/` | stdlib except `argparse`, `domain`, `application.ports`, `infrastructure`, `httpx`, `dns` | `application.use_cases`, `presentation` |
 | `presentation/` | stdlib, `domain`, `application`, `presentation`, `bootstrap`, `fastapi` (api only) | `infrastructure`, `httpx`, `dns` |
-| `bootstrap.py` | everything except `presentation` | `presentation` |
+| `bootstrap.py` | everything except `presentation` and `argparse` | `presentation` |
 
 The rule in one sentence: **the arrow always points inward**; the domain knows nothing, the
 application knows the domain and its own ports, adapters implement ports, and only the
@@ -40,7 +40,9 @@ src/techscope/
     models.py                          Signal, Pattern, Fingerprint, FingerprintIndex, Evidence,
                                        Detection, CollectionFailure, DomainScanResult, ScanReport
     errors.py                          TechScopeError, FingerprintLoadError
-    domain_name.py                     normalise_domain, decide_apex_domain
+    domain_name.py                     decide_domain_or_none (one input line -> a domain),
+                                       decide_apex_domain (arrives with the DNS collector)
+    domain_list.py                     build_domain_list (file text -> ordered, deduplicated)
     matcher.py                         build_fingerprint_index, match_signals
   application/
     ports/                             Protocols the use cases depend on
