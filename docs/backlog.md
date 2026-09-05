@@ -41,7 +41,7 @@ small and the architecture boundary is enforced from day one.
   checker rejects a forbidden import).
 **E2E:** n/a.
 
-## [~] 2. Fingerprint model and Wappalyzer-format repository
+## [~] 2. Fingerprint model and Wappalyzer-format repository — PR #2
 **Goal:** fingerprints are data in the real Wappalyzer shape; the 24 assignment patterns load.
 **Acceptance:**
 - `domain/enums.py`: `ChannelEnum` (moved from feature 1 — this is its first consumer).
