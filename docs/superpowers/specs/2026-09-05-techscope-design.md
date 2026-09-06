@@ -5,7 +5,8 @@ Claude-driven delivery workflow. Amend this file when a decision changes.
 
 Revision 2 (same day): architecture changed from a flat single-package layout to a lightweight
 Clean / Hexagonal layout at the user's request; Docker added as a first-class run mode; the
-HTTP API driver and Next.js web app added as backlog items 10–11, after the submission; `doc/`
+Security review and hardening added as backlog item 10; HTTP API driver and Next.js web app
+moved to backlog items 11–12, after the submission; `doc/`
 merged into `docs/`.
 
 ## 1. Goal and constraints
@@ -157,9 +158,9 @@ keeps the JavaScript-global scan of feature 7 out of JSON blobs.
   `ENTRYPOINT ["techscope"]`. Callers bind-mount the directory holding the domain file:
   `docker run --rm -v "$PWD:/data" techscope:local scan docs/domains.txt -o output.json`.
   `.dockerignore` excludes `.venv`, `.git`, tests, docs, `web/`.
-- **Docker API (feature 10):** same `Dockerfile`, target `api` — installs the `api` extra and
+- **Docker API (feature 11):** same `Dockerfile`, target `api` — installs the `api` extra and
   runs `uvicorn techscope.presentation.api.app:create_app --factory` on port 8000.
-- **Docker web (feature 11):** `web/Dockerfile` (Node 22, `next build`, `next start` on 3000).
+- **Docker web (feature 12):** `web/Dockerfile` (Node 22, `next build`, `next start` on 3000).
 - **`compose.yaml`:** services `scan` (one-shot CLI, profile `cli`), `api`, and `web`
   (`depends_on: api`, `API_URL=http://api:8000`). `docker compose up` gives the web app;
   `docker compose run --rm scan ...` gives the CLI. `make docker-scan` wraps the latter.

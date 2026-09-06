@@ -46,6 +46,7 @@ def _present_run_summary(report: ScanReport) -> dict[str, object]:
 def _present_domain(result: DomainScanResult) -> dict[str, object]:
     return {
         "domain": result.domain,
+        "observed_url": result.observed_url,
         "duration_seconds": _decide_rounded_seconds_or_none(result.duration_seconds),
         "technologies": list(result.list_technology_names()),
         "detections": [_present_detection(detection) for detection in result.detections],

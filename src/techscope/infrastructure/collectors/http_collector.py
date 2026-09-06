@@ -45,7 +45,9 @@ class HttpSignalCollector:
         logger.debug("%s produced %d signals", domain, len(signals))
 
         return CollectionResult(
-            signals=signals, failure=_decide_block_failure_or_none(domain, outcome)
+            signals=signals,
+            failure=_decide_block_failure_or_none(domain, outcome),
+            observed_url=outcome.final_url,
         )
 
 

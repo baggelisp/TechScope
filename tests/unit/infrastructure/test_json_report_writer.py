@@ -32,7 +32,11 @@ def build_result(
     )
 
     return DomainScanResult(
-        domain=domain, detections=detections, failures=failures, duration_seconds=0.5
+        domain=domain,
+        detections=detections,
+        failures=failures,
+        observed_url=f"https://{domain}/",
+        duration_seconds=0.5,
     )
 
 
@@ -203,3 +207,23 @@ def test_details_ends_with_a_trailing_newline(tmp_path: Path) -> None:
     JsonReportWriter().write_details(build_report("stripe.com"), destination)
 
     assert destination.read_text(encoding="utf-8").endswith("}\n")
+
+
+def test_details_records_the_page_the_signals_came_from(tmp_path: Path) -> None:
+    """Four of the assignment's domains redirect to the company that acquired them."""
+    destination = tmp_path / "details.json"
+    moved = DomainScanResult(
+        domain="drift.com",
+        detections=(),
+        failures=(),
+        observed_url="https://www.salesloft.com/platform/chat-agents",
+        duration_seconds=0.4,
+    )
+
+    JsonReportWriter().write_details(
+        ScanReport(results=(moved,), duration_seconds=1.0), destination
+    )
+
+    assert read_field(read_domains(destination)[0], "observed_url") == (
+        "https://www.salesloft.com/platform/chat-agents"
+    )

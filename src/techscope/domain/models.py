@@ -129,6 +129,8 @@ class DomainScanResult:
     domain: str
     detections: tuple[Detection, ...]
     failures: tuple[CollectionFailure, ...]
+    # The page the signals were read from. Usually the domain; not when it redirects elsewhere.
+    observed_url: str | None
     # None where the scan never finished: a cut-short domain has no duration to report,
     # and zero would make the slowest domains look like the fastest.
     duration_seconds: float | None

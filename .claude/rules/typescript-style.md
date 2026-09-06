@@ -1,4 +1,4 @@
-# TypeScript Style — `web/` only (backlog item 11)
+# TypeScript Style — `web/` only (backlog item 12)
 
 Applies to everything under `web/`. Two sources, in priority order:
 

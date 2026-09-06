@@ -127,7 +127,7 @@ a name mentioned only inside a string does not count. Fixtures with GA4 `gtag(`,
 Segment snippets.
 **E2E:** live; GA4 via `gtag(` in `SCRIPT_INLINE` expected on several domains.
 
-## [~] 8. Concurrent scan, budget, structured output, details file — PR #8
+## [x] 8. Concurrent scan, budget, structured output, details file — PR #8
 **Goal:** the production run: bounded concurrency, hard budget, deterministic JSON, clean logs.
 **Acceptance:** bounded concurrency and `--concurrency` moved forward into feature 6, because
 adding DNS took the run from 16 s to 61 s and breached the assignment's 60 s budget; bootstrap
@@ -151,22 +151,69 @@ shipped 24 patterns, but ~530 ms against the full 13,373-pattern upstream databa
   so it is a flag rather than a new default. Feature 9's submitted run states which was used.
 **E2E:** live, twice; target < 30 s. Docker run (`make docker-scan`) must match the local run.
 
-## [ ] 9. Final submission run, output.json, README architecture
+## [~] 9. Final submission run, output.json, README architecture — PR #9
 **Goal:** the deliverable, polished.
 **Acceptance:** fresh live run committed as `output.json`; README sections: install (local +
 Docker), run, architecture decisions (hexagonal layers and why, `Signal` abstraction,
 data-driven fingerprints, key-regex superset, accuracy policy, block handling, budget), known
 limitations, how to add a collector, how to extend the fingerprint DB; assignment checklist in
-README ticked against `assigment/assigment.md`; `make check` green; local and Docker runs produce
-identical `output.json`; repo public.
+README ticked against `assigment/assigment.md`; `make check` green; the Docker run exercises the
+same code path and is compared against the local one, with any difference explained from the
+details file rather than assumed away — a network-dependent scan cannot be byte-identical across
+environments with different network paths; repo public (the owner's call, not the tool's).
+**Submission gate (this feature only):** `make fresh-check` green —
+`scripts/fresh_clone_check.sh` clones the *committed* state into a temp dir and builds it there:
+required files present, `assigment/` and other ignored paths absent, `uv sync --frozen`
+resolves, `make check`, both entry points run, `docker build`. Add `--with-e2e` for the
+submitted run. No other gate covers this: `make check` runs in a warm working tree that still
+has the brief in it.
 **E2E:** live; this run is the one submitted.
 
-## [ ] 10. HTTP API driver (only after 9 is merged)
+## [ ] 10. Security review and hardening
+**Goal:** a documented security pass over the shipped CLI, and the guards that make it safe to
+put a second driver in front of the same core — feature 11 turns a third party's input into
+outbound requests from our host, and every hole must be closed before that, not after.
+**Acceptance:**
+- Security added as a fifth lens to `.claude/agents/reviewer.md` (untrusted input handling,
+  SSRF, ReDoS, resource exhaustion, secrets in images/logs) and to the Definition of Done in
+  `CLAUDE.md`, so every later PR is covered by the merge gate rather than by one audit.
+- One full-tree `/security-review` pass recorded in the PR body: every finding either fixed
+  here, or triaged with a written reason for deferring it.
+- **ReDoS.** Fingerprint regexes are untrusted data (24 today, ~13,373 with the upstream DB)
+  run against untrusted bodies of up to 2 MB, and `re` has no timeout:
+  `check_pattern_is_safe_or_raise` at load time rejects catastrophic shapes (nested quantifiers,
+  alternation with overlapping branches under a quantifier) as a `FingerprintLoadError` naming
+  the technology, plus a per-match input cap in the matcher. A hostile fixture that currently
+  backtracks must finish under 100 ms; the full upstream database must still load clean.
+- **SSRF, pre-emptively.** `is_public_target` in the fetcher, applied to the resolved address
+  of the initial request *and* of every redirect hop: loopback, private, link-local, ULA and
+  any non-`http(s)` scheme are refused with `BlockReasonEnum.PRIVATE_TARGET`, recorded as a
+  typed failure on the result — never a crash, never a fetch. This is the guard that makes
+  feature 11's `POST /scans` safe to expose.
+- **Decompression bombs.** The 2 MB cap counts *decoded* bytes, not the compressed stream;
+  a gzip-bomb fixture must stop the read at the cap instead of filling memory.
+- **Hostile content in our own output.** Evidence snippets are length-capped and stripped of
+  control characters, so a crafted page cannot corrupt `output.json` or smuggle markup into the
+  web app's evidence popover.
+- **Container and supply chain.** Non-root confirmed; image runs with `--read-only` and
+  `--cap-drop ALL`; no secrets in any layer; `.dockerignore` excludes `assigment/`;
+  `pip-audit` (dev dep only) run over `uv.lock` with the result in the PR body. No new runtime
+  dependency.
+- Tests: `tests/fixtures/hostile/` (backtracking page, gzip bomb, redirect to `127.0.0.1`,
+  control-character HTML) with a unit test per guard; no network.
+- README "Security notes": the three-line threat model (we fetch untrusted pages, we never
+  execute them, every resource is bounded) and what the API driver must never relax.
+**E2E:** live; `output.json` must be byte-identical to feature 9's submitted run — hardening
+that changes detections is a bug — and the runtime no worse than +10%.
+
+## [ ] 11. HTTP API driver (only after 10 is merged)
 **Goal:** the same scan, runnable over HTTP for the web app — a second driver, zero core changes.
 **Acceptance:**
 - `pyproject.toml` optional extra `api = ["fastapi", "uvicorn[standard]"]`; the core install is
   unchanged.
 - The API reuses `present_details` from `application/presenters` (feature 8) unchanged.
+- The `is_public_target` guard from feature 10 is what makes an open `POST /scans` safe:
+  domains arrive from a third party here, so no request may reach a private address.
 - `bootstrap.build_scan_service(options)` async context manager; `run_scan` now uses it.
 - `presentation/api/app.py` `create_app(service: ScanService | None = None)` with a lifespan
   that builds the service via bootstrap when none is injected; `routes.py`: `POST /scans`
@@ -181,7 +228,7 @@ identical `output.json`; repo public.
 **E2E:** `docker compose up api` + `curl -X POST /scans` with the 20 domains; response matches
 the CLI `--details` run for the same domains (modulo timing); under 60 s.
 
-## [ ] 11. Web app — Next.js (only after 10 is merged)
+## [ ] 12. Web app — Next.js (only after 11 is merged)
 **Goal:** run a scan from the browser and see the evidence behind every detection.
 **Acceptance:**
 - `web/` Next.js (App Router, TypeScript, ESLint, no static export). Pages: a scan form

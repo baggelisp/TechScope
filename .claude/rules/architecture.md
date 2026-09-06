@@ -81,11 +81,11 @@ src/techscope/
       json_report_writer.py            JsonReportWriter: `{domain: [tech]}` and the --details shape
   presentation/
     cli.py                             argparse, logging setup, exit codes; calls bootstrap
-    api/                               (backlog item 10) FastAPI driver for the web app
+    api/                               (backlog item 11) FastAPI driver for the web app
       app.py                           create_app(): lifespan builds the scan service via bootstrap
       routes.py                        POST /scans, GET /fingerprints, GET /health
       schemas.py                       request/response records for the JSON boundary
-web/                                   (backlog item 11) Next.js app; talks only to presentation/api
+web/                                   (backlog item 12) Next.js app; talks only to presentation/api
 tests/
   unit/                                mirrors src/techscope/<layer>/…; no network, ever
   fixtures/                            recorded HTML / headers / DNS answers as small files
@@ -165,7 +165,7 @@ for the process lifetime. No module outside `bootstrap.py` constructs an adapter
 | Output | `output.json` (+ `--details`) via `JsonReportWriter` | JSON body from `present_details` |
 | Wiring | `bootstrap.run_scan` per invocation | `bootstrap.build_scan_service` at startup |
 | Deps | stdlib only | `fastapi` + `uvicorn` in the optional `api` extra |
-| Ships in | the graded submission | Docker `api` target + `web/` (backlog 10–11) |
+| Ships in | the graded submission | Docker `api` target + `web/` (backlog 11–12) |
 
 The presenter in `application/presenters` is the single place that turns a `ScanReport` into
 JSON-shaped records, so the file the CLI writes and the body the API returns can never drift.

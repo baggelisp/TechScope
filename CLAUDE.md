@@ -32,8 +32,9 @@ base, non-root, targets `cli` and `api`). `src/` layout, package `techscope`, co
 `techscope`. If `uv` is missing: `brew install uv`.
 
 Two drivers share one core: the **CLI** (the graded deliverable, backlog 1–9) and, after the
-submission is done, an **HTTP API** (`fastapi` in the optional `api` extra, backlog 10) with a
-**Next.js web app** in `web/` (backlog 11). The web app only ever talks to the API.
+submission is done, an **HTTP API** (`fastapi` in the optional `api` extra, backlog 11) with a
+**Next.js web app** in `web/` (backlog 12). The web app only ever talks to the API.
+Backlog 10 is the security pass that has to land between the submission and the API.
 
 Verification entry points (feature 1 creates them):
 
@@ -42,7 +43,7 @@ make check         # ruff check + ruff format --check + mypy --strict + pytest (
 make e2e           # live scan of docs/domains.txt → output.json, timed
 make docker-build  # build the image techscope:local (target cli)
 make docker-scan   # same scan as e2e, but inside the container (bind-mounts the repo at /data)
-docker compose up  # (after backlog 11) api on :8000 + web app on :3000
+docker compose up  # (after backlog 12) api on :8000 + web app on :3000
 ```
 
 `uv run <cmd>` for anything else. Never `pip install` into the system interpreter.

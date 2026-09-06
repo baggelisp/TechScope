@@ -96,7 +96,11 @@ def _build_failed_result(domain: str, reason: FailureReasonEnum, detail: str) ->
     failure = CollectionFailure(collector=ORCHESTRATOR_NAME, reason=reason, detail=detail)
 
     return DomainScanResult(
-        domain=domain, detections=(), failures=(failure,), duration_seconds=None
+        domain=domain,
+        detections=(),
+        failures=(failure,),
+        observed_url=None,
+        duration_seconds=None,
     )
 
 
