@@ -5,7 +5,6 @@ that was really observed, and every detection carries the evidence that produced
 """
 
 import re
-import unicodedata
 from dataclasses import dataclass
 
 from techscope.domain.enums import ChannelEnum
@@ -18,6 +17,7 @@ from techscope.domain.models import (
     Pattern,
     Signal,
 )
+from techscope.domain.text_safety import strip_invisible_characters
 
 MINIMUM_REPORTED_CONFIDENCE = 50
 MAXIMUM_EVIDENCE_TEXT_LENGTH = 200
@@ -28,11 +28,6 @@ MAXIMUM_MATCH_INPUT_LENGTH = 2 * 1024 * 1024
 # Removing invisible characters walks every character it is given, and a page controls how many
 # that is. Only this much has to survive for the evidence cap below to be reached.
 EVIDENCE_SCAN_LENGTH = MAXIMUM_EVIDENCE_TEXT_LENGTH * 8
-# Categories that render as nothing, or as something other than themselves: NUL, terminal
-# escapes, and the bidirectional overrides that let text display in an order it is not
-# written in. Evidence is quoted from a page this scanner does not control, and it ends
-# up in a terminal, a JSON file and a web page.
-INVISIBLE_CHARACTER_CATEGORIES = frozenset({"Cc", "Cf", "Co", "Cs"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,16 +137,7 @@ def _decide_matched_text(searchable: str, pattern: Pattern, value_match: re.Matc
     quoted = _decide_quoted_text(searchable, value_match, accepts_any_value)
     shortened = quoted[:EVIDENCE_SCAN_LENGTH]
 
-    return _strip_invisible_characters(shortened)[:MAXIMUM_EVIDENCE_TEXT_LENGTH]
-
-
-def _strip_invisible_characters(text: str) -> str:
-    """A crafted page must not be able to write control codes into our own output."""
-    return "".join(
-        character
-        for character in text
-        if unicodedata.category(character) not in INVISIBLE_CHARACTER_CATEGORIES
-    )
+    return strip_invisible_characters(shortened)[:MAXIMUM_EVIDENCE_TEXT_LENGTH]
 
 
 def _decide_quoted_text(

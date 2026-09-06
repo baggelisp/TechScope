@@ -9,8 +9,10 @@ from techscope.domain.models import (
     Detection,
     DomainScanResult,
     Evidence,
+    Fingerprint,
     ScanReport,
 )
+from techscope.domain.text_safety import strip_invisible_characters
 
 ROUNDED_PLACES = 3
 
@@ -18,6 +20,32 @@ ROUNDED_PLACES = 3
 def present_summary(report: ScanReport) -> dict[str, list[str]]:
     """The shape the assignment asks for: a domain, and the technologies found on it."""
     return {result.domain: list(result.list_technology_names()) for result in report.results}
+
+
+def present_fingerprints(fingerprints: tuple[Fingerprint, ...]) -> dict[str, object]:
+    """What a service will match against, so a caller can show what was looked for.
+
+    Sorted by name, like every other list this scanner emits: a caller should not have to know
+    what order a database happened to be written in.
+    """
+    ordered = sorted(fingerprints, key=_read_fingerprint_name)
+    technologies = [_present_fingerprint(fingerprint) for fingerprint in ordered]
+
+    return {"count": len(technologies), "technologies": technologies}
+
+
+def _read_fingerprint_name(fingerprint: Fingerprint) -> str:
+    return fingerprint.name
+
+
+def _present_fingerprint(fingerprint: Fingerprint) -> dict[str, object]:
+    channels = {pattern.channel.value for pattern in fingerprint.patterns}
+
+    return {
+        "name": fingerprint.name,
+        "channels": sorted(channels),
+        "implies": list(fingerprint.implies),
+    }
 
 
 def present_details(report: ScanReport) -> dict[str, object]:
@@ -72,10 +100,11 @@ def _present_evidence(evidence: Evidence) -> dict[str, object]:
 
 
 def _present_failure(failure: CollectionFailure) -> dict[str, object]:
+    """The detail quotes the target that failed, and a caller chose that text."""
     return {
         "collector": failure.collector,
         "reason": failure.reason.value,
-        "detail": failure.detail,
+        "detail": strip_invisible_characters(failure.detail),
     }
 
 

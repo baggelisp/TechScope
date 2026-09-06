@@ -119,15 +119,18 @@ def _run_scan_command(scan_arguments: ScanArguments) -> int:
 
         return EXIT_USAGE
 
-    options = bootstrap.ScanOptions(
-        domains=domains,
-        output_path=scan_arguments.output_path,
-        details_path=scan_arguments.details_path,
+    settings = bootstrap.ScanSettings(
         fingerprints_path=scan_arguments.fingerprints_path,
         nameservers=scan_arguments.nameservers,
         concurrency=scan_arguments.concurrency,
         timeout_seconds=scan_arguments.timeout_seconds,
         deadline_seconds=scan_arguments.deadline_seconds,
+    )
+    options = bootstrap.ScanOptions(
+        domains=domains,
+        output_path=scan_arguments.output_path,
+        details_path=scan_arguments.details_path,
+        settings=settings,
     )
     bootstrap.run_scan(options)
     logger.info("scanned %d domains into %s", len(domains), scan_arguments.output_path)

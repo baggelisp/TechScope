@@ -74,6 +74,62 @@ reporting an empty result. A scan of the live internet is not byte-reproducible 
 environments or across runs; what is reproducible is that every difference has a recorded
 reason.
 
+## HTTP API
+
+The same scan, over HTTP, for the web app to call. It is a second driver over the same core: no
+use case, no adapter and no matching rule differs between it and the CLI, and the response body
+is produced by the same presenter that writes the CLI's `--details` file, so the two cannot drift
+apart.
+
+It is an optional extra. The graded CLI install does not carry a web framework.
+
+```bash
+uv run --extra api uvicorn techscope.presentation.api.app:create_app --factory --port 8000
+# or
+docker compose --profile api up --build api
+```
+
+| Endpoint | Answers |
+|---|---|
+| `POST /scans` | scans the submitted domains, returns the `--details` shape |
+| `GET /fingerprints` | the technologies this service matches against, and on which channels |
+| `GET /health` | whether the process is serving |
+
+```bash
+curl -X POST http://localhost:8000/scans \
+  -H 'content-type: application/json' \
+  -d '{"domains": ["stripe.com", "shopify.com"]}'
+```
+
+Domains arrive here from a stranger, which is the whole difference from the CLI and the reason
+the security pass had to land first. Four things follow. The request body is bounded before it is
+read, by its declared length where there is one and by what arrives where there is not, so an
+oversized list is refused rather than decoded. Within it, the list is capped at 50 domains and
+each entry at 253 characters. The entries go through the same normaliser the CLI applies to its
+file, so a domain the CLI would refuse cannot become a fetch because a second parser was more
+generous. And every request the scan then makes is checked against the target guard, on the first
+hop and on every redirect, so no submitted name can reach a private address.
+
+Errors are always the same shape, never a traceback:
+
+```json
+{ "error": { "code": "invalid_request", "message": "submit at least one domain" } }
+```
+
+`invalid_request` covers an empty list, more than the cap, an oversized entry, a body of the
+wrong shape, and a list with nothing usable in it. `not_found` and `method_not_allowed` come from
+routing. `internal_error` says only that the request could not be completed; what actually broke
+is logged, not returned.
+
+A domain that fails is still a result, exactly as on the command line: the response is `200` and
+the failure is recorded against that domain.
+
+A scan is a synchronous request with no queue and no stored history. Its deadline is not the
+CLI's 55 seconds: that number exists to fit the assignment's 60-second budget for twenty domains,
+and this driver accepts fifty, so it is derived from the cap instead — five waves of ten domains
+at the per-domain timeout, plus margin. The concurrency limit belongs to the service rather than
+to one call, so several requests at once share it rather than multiplying it.
+
 ## Architecture decisions
 
 A lightweight Clean/Hexagonal layout. The dependency arrow always points inward, and
@@ -316,6 +372,11 @@ apart, and the matcher never learns where a signal came from. A TLS certificate 
 **A new response channel** is one module under `infrastructure/extractors/` and one entry in that
 package's registry.
 
+**A new driver** is a module under `presentation/` that calls `bootstrap.build_scan_service` and
+shapes the report with the presenters. The HTTP API is the worked example: it added no use case,
+no adapter and no matching rule, and it shares the normaliser and the presenter with the CLI
+precisely so the two answers cannot disagree.
+
 ## Development
 
 ```bash
@@ -339,15 +400,15 @@ build if any pattern has no case exercising it.
 | Wappalyzer pattern format, extensible to the full database | `infrastructure/repositories/`, verified against all 7,613 upstream entries |
 | Matching logic implemented here, not a dependency | `domain/matcher.py` |
 | Structured JSON output | `output.json`, plus `output.details.json` |
-| 20 domains in under 60 seconds | 6.7 s of scanning, 7.2 s wall |
+| 20 domains in under 60 seconds | 5.6 s of scanning in the container, 10.3 s wall from the host |
 | Never crash on a bad domain | every domain appears in the output, whatever happened to it |
 | No headless browser, no paid API | one HTTP request and three DNS queries per domain |
 
 `output.json` and `output.details.json` are the real results of one run against the twenty
 domains in `docs/domains.txt`, taken through the machine's own system resolver rather than a
-named one. The details file records that run's own summary: 20 domains, 45 detections across 19
-of them, no domain with problems, 6.7 seconds of scanning. Every detection in it carries the
-channel, the pattern and the text that matched, and every one of the 45 has at least one.
+named one. The details file records that run's own summary: 20 domains, 46 detections across 19
+of them, no domain with problems, 5.6 seconds of scanning. Every detection in it carries the
+channel, the pattern and the text that matched, and every one of the 46 has at least one.
 
 The measurements quoted in this README about the full upstream Wappalyzer database — 7,613
 technologies, 13,373 patterns, the 0.4 s load and the key-collision counts — were taken by

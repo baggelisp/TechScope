@@ -55,7 +55,10 @@ ALLOWED_THIRD_PARTY_MODULES = {
     # must encode a host with the library httpx encodes it with and pin a connection at the
     # layer httpx connects from. Both stay inside infrastructure.
     INFRASTRUCTURE: ("httpx", "httpcore", "idna", "dns"),
-    PRESENTATION: ("fastapi",),
+    # `starlette` is fastapi's own foundation, named here because the routing errors this
+    # driver turns into its own JSON shape are raised by starlette rather than by fastapi.
+    # Both stay inside presentation; neither reaches the core.
+    PRESENTATION: ("fastapi", "starlette"),
     BOOTSTRAP: ("httpx", "dns"),
     ROOT: (),
 }
@@ -404,3 +407,39 @@ def test_architecture_walker_still_reports_infrastructure_reaching_into_a_use_ca
     assert build_import_violations(package_root) == [
         "w.py (infrastructure) imports techscope.application.use_cases.scan"
     ]
+
+
+def test_architecture_walker_reports_the_api_driver_reaching_for_an_adapter(
+    tmp_path: Path,
+) -> None:
+    """The second driver is where this rule earns its keep: it must reach the core the same way."""
+    package_root = write_synthetic_package(
+        tmp_path,
+        {
+            "__init__.py": "",
+            "presentation/api/routes.py": (
+                "from techscope.infrastructure.http.homepage_fetcher import HomepageFetcher\n"
+            ),
+        },
+    )
+
+    assert build_import_violations(package_root) == [
+        "routes.py (presentation) imports techscope.infrastructure.http.homepage_fetcher"
+    ]
+
+
+def test_architecture_walker_reports_the_api_driver_importing_a_network_library(
+    tmp_path: Path,
+) -> None:
+    package_root = write_synthetic_package(
+        tmp_path, {"__init__.py": "", "presentation/api/app.py": "import httpx\n"}
+    )
+
+    assert build_import_violations(package_root) == ["app.py (presentation) imports httpx"]
+
+
+def test_architecture_checker_allows_the_web_framework_only_in_a_driver() -> None:
+    assert is_external_module_allowed("fastapi", PRESENTATION)
+    assert is_external_module_allowed("starlette", PRESENTATION)
+    assert not is_external_module_allowed("fastapi", APPLICATION)
+    assert not is_external_module_allowed("fastapi", INFRASTRUCTURE)
