@@ -83,10 +83,15 @@ presentation/api/  ───┴► application/use_cases ─► domain (Signal, 
 2. `make check` is green — zero ruff findings, zero mypy errors, architecture test passing.
 3. `reviewer` agent returns **PASS** (or WARNINGS you have addressed or consciously deferred in
    the PR body). CRITICAL never ships.
-4. `/e2e` run recorded: runtime, blocked domains, and `output.json` diff explained in the PR body
+4. **Security holds.** Untrusted input stays bounded and inert: every fetch checks its target on
+   every redirect hop, every regex compiled from data is checked for catastrophic backtracking,
+   every read is capped in decoded bytes, and anything quoted from a page into our output is
+   length-capped and stripped of control characters. The `reviewer` agent's security lens is the
+   gate; a hole is a CRITICAL, never a style note.
+5. `/e2e` run recorded: runtime, blocked domains, and `output.json` diff explained in the PR body
    (skipped only while the CLI does not exist yet — features 1–3).
-5. `README.md` and `docs/backlog.md` updated in the same PR.
-6. One feature, one branch, one PR. Nothing else rides along.
+6. `README.md` and `docs/backlog.md` updated in the same PR.
+7. One feature, one branch, one PR. Nothing else rides along.
 
 ## How work is organised
 

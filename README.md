@@ -66,13 +66,13 @@ On Linux a bind mount keeps host ownership, so tell Compose which identity to ru
 `DOCKER_USER="$(id -u):$(id -g)" docker compose --profile cli run --rm scan`. `make docker-scan`
 already does this.
 
-The container runs the same code, but not necessarily on the same network. Comparing the two
-runs here, the container found one detection fewer, and the details file said why: zendesk.com
-exceeded its 15-second budget inside the container. Timing it directly, that host answers in
-5.2 s from the host machine and 15.9 s from inside — the container's network path is slower, the
-scanner bounded the domain as it is supposed to, and it reported the timeout as a problem rather
-than as an empty result. A scan of the live internet is not byte-reproducible across
-environments; what is reproducible is that every difference has a recorded reason.
+The container runs the same code, but not necessarily on the same network, and the committed
+`output.json` is a container run: 20 domains, 46 detections, no domain with a problem. Earlier
+container runs did differ — one lost zendesk.com to its 15-second budget, a host that answers in
+5.2 s from the host machine and 15.9 s from inside — and the details file said so rather than
+reporting an empty result. A scan of the live internet is not byte-reproducible across
+environments or across runs; what is reproducible is that every difference has a recorded
+reason.
 
 ## Architecture decisions
 
@@ -239,14 +239,65 @@ domain cut short by the whole-scan deadline still appears in the output saying s
   cannot be cancelled, so the interpreter waits for it on the way out. Today that is one HTML
   parse over a capped body.
 
-### Who the input comes from
+## Security notes
 
-This is a CLI an operator points at a domain list they chose, and it is built for that: the
-domains are trusted, the fingerprint file is trusted, and only the fetched pages are not. The
-guards that would be needed to accept a domain list from a stranger — refusing private and
-loopback targets on every redirect hop, rejecting catastrophic regex shapes at load time,
-counting decoded rather than compressed bytes against the body cap — are the next piece of work,
-and they belong before a network-facing driver is put in front of this core, not after.
+Three sentences hold the whole model. This scanner fetches pages it does not control; it never
+executes them; and every resource they can consume is bounded.
+
+Five guards make that true, each with its own test against a hostile fixture.
+
+**Targets are checked on every redirect hop, not only the first.** A name someone else chose
+becomes an outbound request from this host, so before each request the name is resolved and
+refused if any address is not public: loopback, private ranges, link-local — including the
+`169.254.169.254` metadata address — unique local addresses, and any scheme that is not `http`
+or `https`. Redirects are followed by this code rather than by the HTTP library precisely so
+that each hop passes the same check.
+
+**The connection goes to the address that was checked.** A name is not what a socket connects
+to, and a check that does not bind the connection describes an answer nobody is held to. Two
+gaps follow from that, and both are closed here. The host is punycode-encoded once, with the
+same library the HTTP client uses, because the resolver's IDNA 2003 folds `straße` to `strasse`
+while the client's IDNA 2008 encodes it to `xn--strae-oqa`, and an attacker who owns both names
+is otherwise checked on one and fetched on the other. Then the approved addresses travel with
+the approval down to where a name becomes a socket, so a nameserver that answers publicly to the
+check and privately to the connection has nowhere to put the second answer. The name is still
+what the `Host` header and the certificate check see, and one address per family is approved so
+that a host stays reachable from a container with no IPv6 route. Independently of all of that,
+the address a response actually arrived from is checked before its body is read.
+
+**Regexes compiled from data are checked for catastrophic backtracking.** Fingerprints are
+untrusted input run against untrusted pages, and Python's `re` has no timeout, so `(a+)+$`
+against a long run of `a` outlasts any deadline. A group that repeats without bound is refused at
+load time, as an error naming the technology, when nothing in its body anchors one repetition
+against the next, when one alternative begins with another, or when a branch can grow without
+limit. Every spelling of a shape has to be read as that shape, because a rule that catches only
+one of them is a rule an attacker writes around: `{1,}` is `+`, and `(?P<name>…)` and `(?i:…)`
+are groups like any other. The rule is narrow on purpose — it refuses all fourteen catastrophic
+shapes tested and none of the 44,980 pattern texts and keys in the full upstream database — and
+the matcher separately caps what any one pattern may be run against, rather than trusting its
+caller to have done it.
+
+**Every read is bounded in decoded bytes.** The 2 MB body cap counts what came out of the
+decompressor, not what came in: a 50 KB gzip bomb that expands to 50 MB stops at the cap. Each
+domain has a 15-second bound including retries, the whole scan has a deadline, and both the
+domain fan-out and the DNS lookups are capped in flight.
+
+**Nothing hostile reaches our own output.** Text quoted from a page as evidence is truncated and
+stripped of control characters — NUL, terminal escapes, and the bidirectional overrides that
+make text display in an order it was not written in — because that evidence ends up in a
+terminal, a JSON file and, later, a web page.
+
+The container runs non-root, read-only, with all capabilities dropped and `no-new-privileges`;
+`make docker-scan` passes those flags. `pip-audit` over the lockfile reports no known
+vulnerabilities.
+
+Two limits worth stating rather than hiding. Pinning a connection to a checked address is
+done by substituting the address at the HTTP library's network layer, which means reaching for
+one attribute that library does not document; the code refuses to build a client at all if that
+attribute ever moves, so the failure is a startup error and never a silently unpinned
+connection. And when a network-facing driver is added, none of the above may be relaxed for it:
+it is the driver that turns a stranger's input into our outbound requests, so the domain list it
+accepts must be bounded in length and normalised through the same parser the CLI uses.
 
 ## Extending it
 

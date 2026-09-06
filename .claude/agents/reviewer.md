@@ -63,6 +63,23 @@ survive the fingerprint database growing from 24 to ~13,373 patterns (per-reques
 be linear in pattern count where an index would do). Compare the recorded `/e2e` runtime against
 the previous run: > 20 % slower with no stated reason is a WARNING, over budget is a CRITICAL.
 
+**Security (binding — a hole is never a style note):** every page this scanner reads is written
+by someone else, and from backlog 11 the domain list is too. Check that untrusted input stays
+bounded and inert:
+- **SSRF.** Any new fetch, or any change to redirect handling, must run through
+  `decide_refusal_or_none` on *every* hop. A code path that reaches the network without that
+  check is a CRITICAL. Loopback, private, link-local, ULA and non-`http(s)` schemes are refused.
+- **ReDoS.** Any new regex compiled from data must pass `check_pattern_is_safe_or_raise`. Any
+  regex written in Python and run against a page body must have no quantified group whose body
+  is entirely optional, and no overlapping alternation under a quantifier.
+- **Resource exhaustion.** Every read from the network is capped in decoded bytes, every wait is
+  bounded, every fan-out is bounded. An unbounded `read()`, `gather` or loop over remote data is
+  a CRITICAL.
+- **Our own output.** Anything quoted from a page into `output.json`, the details file or a log
+  line is length-capped and stripped of control characters.
+- **Secrets and the image.** No credential in a layer, a log line or an error message; the
+  container stays non-root, read-only and capability-free.
+
 **House style (`.claude/rules/python-style.md` — binding, checked mechanically):** inline
 conditionals in `return`/arguments/literals instead of a named `decide_*` local; dense boolean
 chains without named intermediates; negative `if` for branching (not guards); nested happy path

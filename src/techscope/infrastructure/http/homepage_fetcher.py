@@ -7,12 +7,23 @@ honestly and detects a block rather than trying to evade it.
 import asyncio
 import logging
 from importlib.metadata import version
+from urllib.parse import urljoin
 
 import httpx
 
 from techscope.domain.enums import FailureReasonEnum
-from techscope.infrastructure.http.models import FetchFailure, FetchResult
+from techscope.infrastructure.http.models import FetchFailure, FetchResult, RedirectTarget
+from techscope.infrastructure.http.pinned_address import (
+    build_pinned_transport,
+    connecting_only_to,
+)
 from techscope.infrastructure.http.soft_block import decide_block_reason_or_none
+from techscope.infrastructure.http.target_safety import (
+    ApprovedTarget,
+    TargetRefusal,
+    decide_target,
+    is_public_address,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +41,9 @@ TOTAL_TIMEOUT_SECONDS = 15.0
 RETRY_BACKOFF_SECONDS = 0.5
 MAXIMUM_REDIRECTS = 5
 MAXIMUM_BODY_BYTES = 2 * 1024 * 1024
+LOCATION_HEADER = "location"
+NETWORK_STREAM_EXTENSION = "network_stream"
+SERVER_ADDRESS_INFO = "server_addr"
 FALLBACK_ENCODING = "utf-8"
 DECODE_ERROR_POLICY = "replace"
 
@@ -40,9 +54,10 @@ TRANSIENT_REASONS = frozenset({FailureReasonEnum.CONNECTION_FAILED, FailureReaso
 def build_client() -> httpx.AsyncClient:
     """The client this fetcher expects.
 
-    Redirect following, the redirect cap, the timeouts and the honest identification belong
-    together: splitting them between here and the composition root is how one quietly goes
-    missing. The composition root still owns the client's lifetime.
+    The timeouts and the honest identification belong together: splitting them between here and
+    the composition root is how one quietly goes missing. The composition root still owns the
+    client's lifetime. Redirects are not delegated to httpx at all — see ``_attempt`` — and
+    neither is the choice of address — see ``pinned_address``.
     """
     timeout = httpx.Timeout(
         connect=CONNECT_TIMEOUT_SECONDS,
@@ -53,9 +68,12 @@ def build_client() -> httpx.AsyncClient:
 
     return httpx.AsyncClient(
         timeout=timeout,
-        follow_redirects=True,
-        max_redirects=MAXIMUM_REDIRECTS,
+        # Redirects are followed by hand: every hop is a new target, and a target this scanner
+        # has not checked is a target it must not fetch.
+        follow_redirects=False,
         headers=REQUEST_HEADERS,
+        # Every connection goes to an address the guard already approved for that hop.
+        transport=build_pinned_transport(),
     )
 
 
@@ -119,23 +137,98 @@ class HomepageFetcher:
         return await self._attempt(url)
 
     async def _attempt(self, url: str) -> FetchResult | FetchFailure:
-        try:
-            async with self._client.stream("GET", url) as response:
-                raw_body = await _read_capped_body(response)
-                body = _decide_body_text(response, raw_body)
+        """Follow the redirect chain by hand, checking every hop before requesting it."""
+        next_url = url
 
-                return _build_fetch_result(response, body)
+        for _hop in range(MAXIMUM_REDIRECTS + 1):
+            decision = await decide_target(next_url)
+
+            if isinstance(decision, TargetRefusal):
+                logger.warning("refusing to fetch %s: %s", next_url, decision.detail)
+
+                return FetchFailure(reason=decision.reason, detail=decision.detail)
+
+            outcome = await self._request(decision)
+
+            if not isinstance(outcome, RedirectTarget):
+                return outcome
+
+            next_url = urljoin(decision.url, outcome.location)
+
+        return FetchFailure(
+            reason=FailureReasonEnum.TOO_MANY_REDIRECTS,
+            detail=f"more than {MAXIMUM_REDIRECTS} redirects from {url}",
+        )
+
+    async def _request(self, target: ApprovedTarget) -> FetchResult | FetchFailure | RedirectTarget:
+        """A result, a failure, or the next hop."""
+        try:
+            with connecting_only_to(target.addresses):
+                async with self._client.stream("GET", target.url) as response:
+                    return await _read_outcome(response, target.url)
         except httpx.InvalidURL as error:
             # Not an HTTPError, so it would otherwise escape and break the no-raise contract.
             return FetchFailure(reason=FailureReasonEnum.INVALID_HOST, detail=str(error))
-        except httpx.TooManyRedirects as error:
-            return FetchFailure(reason=FailureReasonEnum.TOO_MANY_REDIRECTS, detail=str(error))
         except (httpx.ConnectError, httpx.ConnectTimeout) as error:
             return FetchFailure(reason=FailureReasonEnum.CONNECTION_FAILED, detail=str(error))
         except httpx.TimeoutException as error:
             return FetchFailure(reason=FailureReasonEnum.TIMEOUT, detail=str(error))
         except httpx.HTTPError as error:
             return FetchFailure(reason=FailureReasonEnum.INVALID_RESPONSE, detail=str(error))
+
+
+async def _read_outcome(
+    response: httpx.Response, url: str
+) -> FetchResult | FetchFailure | RedirectTarget:
+    """A result, a failure, or the next hop — decided before any body is read."""
+    peer_refusal = _decide_peer_refusal_or_none(response)
+
+    if peer_refusal is not None:
+        return peer_refusal
+
+    redirect = _decide_redirect_or_none(response)
+
+    if redirect is not None:
+        return redirect
+
+    raw_body = await _read_capped_body(response)
+    body = _decide_body_text(response, raw_body)
+
+    return _build_fetch_result(response, body, url)
+
+
+def _decide_peer_refusal_or_none(response: httpx.Response) -> FetchFailure | None:
+    """What the socket actually reached, checked independently of what pinned it.
+
+    The pinning in ``pinned_address`` is the control and this is the audit. They rest on different
+    things — one on a context variable, one on the socket itself — so a connection to a private
+    address has to defeat both to go unnoticed.
+    """
+    peer = _decide_peer_address_or_none(response)
+
+    if peer is None or is_public_address(peer):
+        return None
+
+    logger.warning("dropping a response that arrived from the non-public address %s", peer)
+
+    return FetchFailure(
+        reason=FailureReasonEnum.PRIVATE_TARGET,
+        detail=f"the connection reached {peer}, which is not a public address",
+    )
+
+
+def _decide_peer_address_or_none(response: httpx.Response) -> str | None:
+    stream = response.extensions.get(NETWORK_STREAM_EXTENSION)
+
+    if stream is None:
+        return None
+
+    server_address = stream.get_extra_info(SERVER_ADDRESS_INFO)
+
+    if not isinstance(server_address, tuple) or len(server_address) == 0:
+        return None
+
+    return str(server_address[0])
 
 
 async def _read_capped_body(response: httpx.Response) -> bytes:
@@ -152,11 +245,15 @@ async def _read_capped_body(response: httpx.Response) -> bytes:
     return b"".join(chunks)[:MAXIMUM_BODY_BYTES]
 
 
-def _build_fetch_result(response: httpx.Response, body: str) -> FetchResult:
+def _build_fetch_result(response: httpx.Response, body: str, url: str) -> FetchResult:
+    """The URL is the caller's, not the response's.
+
+    The caller followed the redirects, so it is the only one that knows where the chain ended.
+    """
     headers = tuple((name.lower(), value) for name, value in response.headers.multi_items())
 
     return FetchResult(
-        final_url=str(response.url),
+        final_url=url,
         status_code=response.status_code,
         headers=headers,
         body=body,
@@ -180,3 +277,13 @@ def _decide_encoding(response: httpx.Response) -> str:
         return FALLBACK_ENCODING
 
     return declared
+
+
+def _decide_redirect_or_none(response: httpx.Response) -> RedirectTarget | None:
+    if not response.is_redirect:
+        return None
+
+    if LOCATION_HEADER not in response.headers:
+        return None
+
+    return RedirectTarget(location=str(response.headers[LOCATION_HEADER]))

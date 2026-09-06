@@ -5,6 +5,7 @@ that was really observed, and every detection carries the evidence that produced
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from techscope.domain.enums import ChannelEnum
@@ -20,6 +21,18 @@ from techscope.domain.models import (
 
 MINIMUM_REPORTED_CONFIDENCE = 50
 MAXIMUM_EVIDENCE_TEXT_LENGTH = 200
+# What one pattern may be run against. The fetcher caps a body at the same size, but the matcher
+# is a public entry point and `re` has no timeout, so it does not take its caller's word for it —
+# the HTTP API driver will hand it signals this module never saw collected.
+MAXIMUM_MATCH_INPUT_LENGTH = 2 * 1024 * 1024
+# Removing invisible characters walks every character it is given, and a page controls how many
+# that is. Only this much has to survive for the evidence cap below to be reached.
+EVIDENCE_SCAN_LENGTH = MAXIMUM_EVIDENCE_TEXT_LENGTH * 8
+# Categories that render as nothing, or as something other than themselves: NUL, terminal
+# escapes, and the bidirectional overrides that let text display in an order it is not
+# written in. Evidence is quoted from a page this scanner does not control, and it ends
+# up in a terminal, a JSON file and a web page.
+INVISIBLE_CHARACTER_CATEGORIES = frozenset({"Cc", "Cf", "Co", "Cs"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,7 +95,8 @@ def _decide_evidence_or_none(signal: Signal, pattern: Pattern) -> Evidence | Non
     if not _is_key_match(signal, pattern):
         return None
 
-    value_match = pattern.value_regex.search(signal.value)
+    searchable = signal.value[:MAXIMUM_MATCH_INPUT_LENGTH]
+    value_match = pattern.value_regex.search(searchable)
 
     if value_match is None:
         return None
@@ -91,7 +105,7 @@ def _decide_evidence_or_none(signal: Signal, pattern: Pattern) -> Evidence | Non
         channel=signal.channel,
         key=signal.key,
         pattern_source=pattern.decide_source_text(),
-        matched_text=_decide_matched_text(signal, pattern, value_match),
+        matched_text=_decide_matched_text(searchable, pattern, value_match),
     )
 
 
@@ -115,21 +129,36 @@ def _is_key_match(signal: Signal, pattern: Pattern) -> bool:
     return pattern.key_regex.fullmatch(signal.key) is not None
 
 
-def _decide_matched_text(signal: Signal, pattern: Pattern, value_match: re.Match[str]) -> str:
+def _decide_matched_text(searchable: str, pattern: Pattern, value_match: re.Match[str]) -> str:
     """What to quote as evidence.
 
     The matched text, except where the pattern accepts any value — the keyed case, where the
     interesting fact is the value the named signal actually carried.
+
+    Shortened before it is cleaned, not after. A greedy pattern can match a large slice of a 2 MB
+    page, and walking all of it to keep 200 characters costs 0.16 s where this costs microseconds.
     """
     accepts_any_value = len(pattern.value_source) == 0
-    quoted = _decide_quoted_text(signal, value_match, accepts_any_value)
+    quoted = _decide_quoted_text(searchable, value_match, accepts_any_value)
+    shortened = quoted[:EVIDENCE_SCAN_LENGTH]
 
-    return quoted[:MAXIMUM_EVIDENCE_TEXT_LENGTH]
+    return _strip_invisible_characters(shortened)[:MAXIMUM_EVIDENCE_TEXT_LENGTH]
 
 
-def _decide_quoted_text(signal: Signal, value_match: re.Match[str], accepts_any_value: bool) -> str:
+def _strip_invisible_characters(text: str) -> str:
+    """A crafted page must not be able to write control codes into our own output."""
+    return "".join(
+        character
+        for character in text
+        if unicodedata.category(character) not in INVISIBLE_CHARACTER_CATEGORIES
+    )
+
+
+def _decide_quoted_text(
+    searchable: str, value_match: re.Match[str], accepts_any_value: bool
+) -> str:
     if accepts_any_value:
-        return signal.value
+        return searchable
 
     return value_match.group(0)
 

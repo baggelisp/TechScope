@@ -151,7 +151,7 @@ shipped 24 patterns, but ~530 ms against the full 13,373-pattern upstream databa
   so it is a flag rather than a new default. Feature 9's submitted run states which was used.
 **E2E:** live, twice; target < 30 s. Docker run (`make docker-scan`) must match the local run.
 
-## [~] 9. Final submission run, output.json, README architecture — PR #9
+## [x] 9. Final submission run, output.json, README architecture — PR #9
 **Goal:** the deliverable, polished.
 **Acceptance:** fresh live run committed as `output.json`; README sections: install (local +
 Docker), run, architecture decisions (hexagonal layers and why, `Signal` abstraction,
@@ -169,7 +169,7 @@ submitted run. No other gate covers this: `make check` runs in a warm working tr
 has the brief in it.
 **E2E:** live; this run is the one submitted.
 
-## [ ] 10. Security review and hardening
+## [~] 10. Security review and hardening
 **Goal:** a documented security pass over the shipped CLI, and the guards that make it safe to
 put a second driver in front of the same core — feature 11 turns a third party's input into
 outbound requests from our host, and every hole must be closed before that, not after.

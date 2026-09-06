@@ -308,8 +308,16 @@ async def test_fetch_stops_at_the_total_budget_however_slowly_the_host_answers()
 
 
 @respx.mock
-async def test_fetch_reports_a_host_that_cannot_be_turned_into_a_url() -> None:
-    """httpx.InvalidURL is not an HTTPError, so it once escaped the no-raise contract."""
+async def test_fetch_reports_a_host_that_cannot_be_resolved() -> None:
+    """The target guard catches a host that resolves to nothing before a request is built."""
+    failure = expect_failure(await fetch("no-such-host.invalid"))
+
+    assert failure.reason is FailureReasonEnum.DNS_UNRESOLVED
+
+
+@respx.mock
+async def test_fetch_reports_a_host_that_is_not_a_name_at_all() -> None:
+    """An emoji is refused as a name rather than sent to a resolver to puzzle over."""
     failure = expect_failure(await fetch("\U0001f600.com"))
 
     assert failure.reason is FailureReasonEnum.INVALID_HOST

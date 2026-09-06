@@ -11,6 +11,7 @@ import re
 from techscope.domain.enums import KEYED_CHANNELS, ChannelEnum
 from techscope.domain.errors import FingerprintLoadError
 from techscope.domain.models import Pattern
+from techscope.infrastructure.repositories.pattern_safety import decide_pattern_danger_or_none
 
 MODIFIER_SEPARATOR = "\\;"
 CONFIDENCE_MODIFIER = "confidence:"
@@ -28,6 +29,10 @@ def build_pattern(
     regex_text = parts[0]
     modifier_parts = parts[1:]
     _check_pattern_is_not_a_wildcard_or_raise(technology, channel, regex_text)
+    check_pattern_is_safe_or_raise(technology, regex_text)
+
+    if raw_key is not None:
+        check_pattern_is_safe_or_raise(technology, raw_key)
 
     return Pattern(
         channel=channel,
@@ -119,3 +124,20 @@ def _compile_or_raise(technology: str, regex_text: str) -> re.Pattern[str]:
         return re.compile(regex_text, re.IGNORECASE)
     except re.error as error:
         raise FingerprintLoadError(technology, f"invalid regex {regex_text!r}: {error}") from error
+
+
+def check_pattern_is_safe_or_raise(technology: str, regex_text: str) -> None:
+    """Refuse a regex that can be driven into exponential backtracking.
+
+    Patterns are data and the pages they run against are not ours. ``re`` has no timeout, so a
+    pattern that backtracks is a way to stop the scanner from a page it is scanning.
+    """
+    danger = decide_pattern_danger_or_none(regex_text)
+
+    if danger is None:
+        return
+
+    raise FingerprintLoadError(
+        technology,
+        f"the pattern {regex_text!r} can backtrack exponentially at {danger!r}",
+    )

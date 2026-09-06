@@ -51,7 +51,10 @@ ALLOWED_INTERNAL_PREFIXES = {
 ALLOWED_THIRD_PARTY_MODULES = {
     DOMAIN: (),
     APPLICATION: (),
-    INFRASTRUCTURE: ("httpx", "dns"),
+    # `idna` and `httpcore` are httpx's own dependencies, named here because the SSRF guard
+    # must encode a host with the library httpx encodes it with and pin a connection at the
+    # layer httpx connects from. Both stay inside infrastructure.
+    INFRASTRUCTURE: ("httpx", "httpcore", "idna", "dns"),
     PRESENTATION: ("fastapi",),
     BOOTSTRAP: ("httpx", "dns"),
     ROOT: (),

@@ -13,4 +13,8 @@ services:
     # On Linux a bind mount keeps host ownership, so the container needs the host identity
     # to write output.json: DOCKER_USER="$(id -u):$(id -g)" docker compose ...
     user: "${DOCKER_USER:-1000:1000}"
+    # It needs no capabilities and writes only to the mount.
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
     command: ["scan", "docs/domains.txt", "-o", "output.json", "--log-level", "INFO"]
