@@ -155,3 +155,23 @@ async def test_scan_domain_runs_its_collectors_concurrently() -> None:
     elapsed = asyncio.get_running_loop().time() - started_at
 
     assert elapsed < pause * 2
+
+
+async def test_scan_domain_records_the_page_the_http_collector_read() -> None:
+    """A domain that redirects to another company must not hide where its signals came from."""
+    moved = CollectionResult(
+        signals=(STRIPE_SIGNAL,),
+        failure=None,
+        observed_url="https://www.salesloft.com/platform/chat-agents",
+    )
+    collector = FakeCollector("http", moved)
+
+    result = await build_use_case(collector).execute(DOMAIN)
+
+    assert result.observed_url == "https://www.salesloft.com/platform/chat-agents"
+
+
+async def test_scan_domain_reports_no_page_when_nothing_was_fetched() -> None:
+    result = await build_use_case(FakeCollector("dns")).execute(DOMAIN)
+
+    assert result.observed_url is None

@@ -44,6 +44,7 @@ class FakeScanDomain:
                 domain=domain,
                 detections=(Detection(name="Some Tech", confidence=100, evidence=()),),
                 failures=(),
+                observed_url=f"https://{domain}/",
                 duration_seconds=0.0,
             )
         finally:

@@ -16,6 +16,10 @@ class CollectionResult:
 
     signals: tuple[Signal, ...]
     failure: CollectionFailure | None
+    # Where the signals were actually read from, when that is not simply the domain. Four of the
+    # assignment's own domains redirect to the company that acquired them, and a detection is
+    # only honest if the page it came from is on the record.
+    observed_url: str | None = None
 
 
 class SignalCollector(Protocol):

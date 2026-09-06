@@ -40,6 +40,7 @@ class ScanDomainUseCase:
         )
         signals: list[Signal] = []
         failures: list[CollectionFailure] = []
+        observed_urls: list[str] = []
 
         for collector, outcome in zip(self._collectors, outcomes, strict=True):
             recoverable = _check_outcome_is_recoverable_or_raise(outcome)
@@ -49,12 +50,16 @@ class ScanDomainUseCase:
             if result.failure is not None:
                 failures.append(result.failure)
 
+            if result.observed_url is not None:
+                observed_urls.append(result.observed_url)
+
         detections = match_signals(tuple(signals), self._fingerprint_index)
 
         return DomainScanResult(
             domain=domain,
             detections=detections,
             failures=tuple(failures),
+            observed_url=_decide_observed_url_or_none(observed_urls),
             duration_seconds=None,
         )
 
@@ -87,3 +92,11 @@ def _decide_collection_result(
     )
 
     return CollectionResult(signals=(), failure=failure)
+
+
+def _decide_observed_url_or_none(observed_urls: list[str]) -> str | None:
+    """Only the HTTP collector reads a page, so there is at most one to report."""
+    if len(observed_urls) == 0:
+        return None
+
+    return observed_urls[0]
