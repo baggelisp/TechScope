@@ -19,7 +19,7 @@ be selective, be concrete, and never assert a CRITICAL you have not checked empi
 - `CLAUDE.md`, `.claude/rules/*.md`, and `assigment/assigment.md` are the rules you review against.
 - Read only the diff plus the callers/callees/tests it references. Do not read the whole repo.
 
-## Four lenses
+## Lenses
 
 **Correctness:** logic and data-flow errors on changed code; regex semantics (anchors, escaping,
 `re.IGNORECASE`, greedy matches that over-detect); async mistakes (missing `await`, unbounded
@@ -45,6 +45,23 @@ collector, a port with no I/O behind it, or a new per-channel field on a model i
 
 **Network hygiene:** honest User-Agent, bounded body size, redirect cap, retry-once-not-forever,
 soft-block classification that still keeps header/DNS evidence.
+
+**Detection accuracy (the graded metric — `repositories/data/technologies.json` is code you
+review, not data you skim):** every added or edited pattern needs a positive case *and* a
+near-miss negative in `tests/unit/domain/test_matcher.py`. Read the regex as an attacker of your
+own tool would: unanchored fragments that match a substring of any URL, a bare vendor name that
+appears in unrelated prose, a version pattern that also matches the version you meant to exclude,
+a `scriptSrc` entry with no path component. A pattern that would fire on a page not using the
+technology is a CRITICAL — false positives cost more than misses. Check the claim empirically:
+`uv run python -c` the regex against both the intended input and the near-miss before you assert.
+
+**Performance budget:** the 60 s / 20-domain limit has already been breached once (DNS took the
+run from 16 s to 61 s in feature 6), so treat timing as a correctness property. On any diff that
+adds per-domain work: is it inside the existing bounded concurrency or a new unbounded fan-out;
+is every await bounded by a timeout; does it add a round trip per domain or per signal; does it
+survive the fingerprint database growing from 24 to ~13,373 patterns (per-request work must not
+be linear in pattern count where an index would do). Compare the recorded `/e2e` runtime against
+the previous run: > 20 % slower with no stated reason is a WARNING, over budget is a CRITICAL.
 
 **House style (`.claude/rules/python-style.md` — binding, checked mechanically):** inline
 conditionals in `return`/arguments/literals instead of a named `decide_*` local; dense boolean
@@ -76,9 +93,12 @@ percentages.
 ## Escalation — recommend, don't run
 
 Finish your pass, then add "Escalation recommended: <reason>" if any apply: the diff touches
-`domain/matcher.py` semantics or `infrastructure/repositories/`; changes the use cases'
-concurrency/timeout model; changes a port signature; exceeds ~400 lines / ~8 files; or contains
-a would-be CRITICAL you could not settle.
+`domain/matcher.py` semantics or `infrastructure/repositories/` (including new patterns in
+`data/technologies.json` — accuracy is the graded metric); changes the use cases'
+concurrency/timeout model, or the recorded `/e2e` runtime moved by more than 20 %; changes a
+port signature; exceeds ~400 lines / ~8 files; or contains a would-be CRITICAL you could not
+settle. For the submission itself (backlog item 9) the escalation is a different agent:
+recommend `submission-reviewer`, which grades the whole deliverable against the brief.
 
 ## Output
 
