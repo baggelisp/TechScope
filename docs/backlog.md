@@ -169,7 +169,7 @@ submitted run. No other gate covers this: `make check` runs in a warm working tr
 has the brief in it.
 **E2E:** live; this run is the one submitted.
 
-## [~] 10. Security review and hardening — PR #10
+## [x] 10. Security review and hardening — PR #10
 **Goal:** a documented security pass over the shipped CLI, and the guards that make it safe to
 put a second driver in front of the same core — feature 11 turns a third party's input into
 outbound requests from our host, and every hole must be closed before that, not after.
@@ -206,7 +206,7 @@ outbound requests from our host, and every hole must be closed before that, not 
 **E2E:** live; `output.json` must be byte-identical to feature 9's submitted run — hardening
 that changes detections is a bug — and the runtime no worse than +10%.
 
-## [ ] 11. HTTP API driver (only after 10 is merged)
+## [~] 11. HTTP API driver (only after 10 is merged)
 **Goal:** the same scan, runnable over HTTP for the web app — a second driver, zero core changes.
 **Acceptance:**
 - `pyproject.toml` optional extra `api = ["fastapi", "uvicorn[standard]"]`; the core install is

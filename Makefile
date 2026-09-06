@@ -1,4 +1,4 @@
-.PHONY: help check lint format-check typecheck test fmt e2e docker-build docker-scan
+.PHONY: help check lint format-check typecheck test fmt e2e docker-build docker-scan docker-api
 
 DOMAINS_FILE ?= docs/domains.txt
 OUTPUT_FILE ?= output.json
@@ -12,6 +12,7 @@ help:
 	@echo 'e2e           live scan of $(DOMAINS_FILE), timed'
 	@echo 'docker-build  build the $(IMAGE) image'
 	@echo 'docker-scan   run the same scan inside the container'
+	@echo 'docker-api    serve the HTTP API on :8000 in a container'
 
 check: lint format-check typecheck test
 
@@ -21,22 +22,28 @@ lint:
 format-check:
 	uv run ruff format --check .
 
+# `--extra api` on both: the HTTP driver ships in an optional extra, and a gate that cannot
+# import it silently checks nothing about it. Without this the api tests are not collected at
+# all and mypy reports the driver as unresolvable imports.
 typecheck:
-	uv run mypy
+	uv run --extra api mypy
 
 test:
-	uv run pytest -q
+	uv run --extra api pytest -q
 
 fmt:
 	uv run ruff format .
 	uv run ruff check --fix .
 
 e2e:
-	uv sync
+	uv sync --extra api
 	/usr/bin/time -p uv run techscope scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --details $(DETAILS_FILE) --log-level INFO
 
 docker-build:
 	docker build --target cli -t $(IMAGE) .
+
+docker-api:
+	docker compose --profile api up --build api
 
 docker-scan:
 	# --user keeps the bind-mounted output writable on Linux, where the host uid is preserved.

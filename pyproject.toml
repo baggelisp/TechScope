@@ -13,6 +13,11 @@ dependencies = [
     "idna>=3.10",
 ]
 
+[project.optional-dependencies]
+# The graded CLI never installs these. The web app talks only to this driver, and the driver
+# talks only to the same core the CLI does.
+api = ["fastapi>=0.115", "uvicorn[standard]>=0.34"]
+
 [project.scripts]
 techscope = "techscope.presentation.cli:main"
 

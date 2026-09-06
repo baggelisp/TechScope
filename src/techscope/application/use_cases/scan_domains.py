@@ -30,7 +30,11 @@ class ScanDomainsUseCase:
         self, scan_domain: DomainScanner, concurrency: int, deadline_seconds: float
     ) -> None:
         self._scan_domain = scan_domain
-        self._concurrency = concurrency
+        # One limiter for the life of this use case, not one per call. The CLI runs a single
+        # scan per process, so nothing changes there; the HTTP API holds one of these for the
+        # life of the server, and a per-call limiter would let N simultaneous requests put
+        # N times the limit of domains in flight over one connection pool.
+        self._limit = asyncio.Semaphore(concurrency)
         self._deadline_seconds = deadline_seconds
 
     async def execute(self, domains: tuple[str, ...]) -> ScanReport:
@@ -46,10 +50,8 @@ class ScanDomainsUseCase:
         return report
 
     def _start_tasks(self, domains: tuple[str, ...]) -> tuple[asyncio.Task[DomainScanResult], ...]:
-        limit = asyncio.Semaphore(self._concurrency)
-
         async def scan_one(domain: str) -> DomainScanResult:
-            async with limit:
+            async with self._limit:
                 started_at = perf_counter()
                 result = await self._scan_domain.execute(domain)
 

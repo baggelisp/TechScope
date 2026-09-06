@@ -1,4 +1,4 @@
-# The `api` and `web` services arrive with backlog items 10 and 11.
+# The `web` service arrives with backlog item 12.
 services:
   scan:
     profiles: ["cli"]
@@ -18,3 +18,16 @@ services:
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
     command: ["scan", "docs/domains.txt", "-o", "output.json", "--log-level", "INFO"]
+
+  api:
+    profiles: ["api"]
+    build:
+      context: .
+      target: api
+    image: techscope-api:local
+    ports:
+      - "8000:8000"
+    # It serves from memory and writes nothing; the scan itself is the only outbound traffic.
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
