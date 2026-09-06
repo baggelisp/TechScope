@@ -228,7 +228,10 @@ case-insensitive regex — a strict superset, since a literal name is a valid re
 with `fullmatch`, and that detail matters: over the 7,894 keyed patterns of the full upstream
 database, cross-technology key collisions number 883 under `search`, 199 under `match` and 3
 under `fullmatch`. Unanchored, the F5 BigIP cookie key `TIN` matches the ordinary WordPress
-cookie `wp-settings-time-1`, and every WordPress site is reported as running F5 BigIP.
+cookie `wp-settings-time-1`, and every WordPress site is reported as running F5 BigIP. The one
+cost is a prefix written without its quantifier: the assignment's `^intercom-` is shipped as
+`^intercom-.*`, the same meaning spelled out, because under `fullmatch` the brief's text alone
+would match no cookie name at all.
 
 **A block is evidence, not an error.** A host that answers 403, rate-limits, or serves a
 challenge page still tells us something, and its response headers are still collected — a
@@ -321,6 +324,13 @@ confirms records exist. Lookups are also capped at ten in flight across the run,
 resolver asked for thirty at once starts dropping them: unbounded, the assignment's domains
 returned 661 to 676 records and a different number every run; bounded, 749 and faster.
 
+A lookup that still runs out of time is not read as "no records". It is recorded as a problem
+on the domain — `dns: timeout`, naming the record type, in the details file and as a warning
+on stderr — because a timed-out TXT lookup and a domain with no TXT record produce the same
+empty list, and only one of them means the detections are really absent. Measured on this
+machine's system resolver before this was recorded: six runs returned between 40 and 46
+detections with `problems: []` on every domain, while a public resolver returned 46 each time.
+
 One domain can never cost another. Each collector is isolated, each domain is isolated, and a
 domain cut short by the whole-scan deadline still appears in the output saying so.
 
@@ -335,7 +345,8 @@ domain cut short by the whole-scan deadline still appears in the output saying s
   file, so the substitution is visible in every run rather than silent.
 - **DNS is the only part of a run that does not reproduce exactly.** Repeated runs here returned
   between 713 and 749 records depending on the local resolver, while a public one returned 749
-  every time and fifteen times faster. `--nameserver` is the lever.
+  every time and fifteen times faster. `--nameserver` is the lever, and a run that lost records
+  to a timeout now says so in its problems rather than reporting fewer technologies quietly.
 - **Loader-injected vendors are missed.** Segment, Zendesk and Sentry are not detected on their
   own domains, for the reason above. The channel that would find them properly is `window.*`
   globals, and the fingerprint set the assignment supplies contains no `js` patterns.
@@ -443,7 +454,7 @@ make fmt      # format and apply safe lint fixes
 make e2e      # timed live scan of the 20 assignment domains
 ```
 
-589 tests, none of which touch the network: HTTP goes through `respx`, DNS through injected
+612 tests, none of which touch the network: HTTP goes through `respx`, DNS through injected
 fakes, and an autouse fixture makes both a real nameserver and a real `getaddrinfo` unreachable
 from any unit test. Every shipped fingerprint has a positive case and a near-miss that must not
 match, and a test fails the build if any pattern has no case exercising it. `make check` runs the

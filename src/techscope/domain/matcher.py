@@ -175,10 +175,12 @@ def _decide_reported_confidences(confidence_by_technology: dict[str, int]) -> di
 def _add_implied_confidences(
     confidence_by_technology: dict[str, int], index: FingerprintIndex
 ) -> dict[str, int]:
-    """Follow ``implies`` chains, each implication inheriting the confidence that reached it.
+    """Follow ``implies`` chains, bounding each step by the confidence that reached it.
 
-    An entry is queued again only when its confidence strictly increases, so a cycle in the data
-    settles instead of looping.
+    Wappalyzer semantics: an implied technology is as certain as the weaker of the implier's
+    match and the implication's own modifier, and one that ends up under the reporting
+    threshold is not reported. An entry is queued again only when its confidence strictly
+    increases, so a cycle in the data settles instead of looping.
     """
     resolved = dict(confidence_by_technology)
     pending = list(confidence_by_technology.items())
@@ -190,12 +192,19 @@ def _add_implied_confidences(
         if fingerprint is None:
             continue
 
-        for implied in fingerprint.implies:
-            if _is_resolved_at_least_as_strongly(resolved, implied, confidence):
+        for implication in fingerprint.implies:
+            implied_confidence = min(confidence, implication.confidence)
+
+            if implied_confidence < MINIMUM_REPORTED_CONFIDENCE:
                 continue
 
-            resolved[implied] = confidence
-            pending.append((implied, confidence))
+            if _is_resolved_at_least_as_strongly(
+                resolved, implication.technology, implied_confidence
+            ):
+                continue
+
+            resolved[implication.technology] = implied_confidence
+            pending.append((implication.technology, implied_confidence))
 
     return resolved
 

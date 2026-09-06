@@ -1,12 +1,14 @@
 """Looking up DNS records, bounded and non-raising.
 
-A name that does not exist, a record type that is not published, and a resolver that did not
-answer in time are all the same thing to a scanner: no records. They are logged and reported as
-an empty answer rather than as an error, because an absent MX record is information too.
+A name that does not exist and a record type that is not published are answers: no records,
+and nothing went wrong, because an absent MX record is information too. A resolver that did not
+answer in time is not an answer. It comes back as no records *and* a failure, so the scan can
+say that the records were never read rather than that they do not exist.
 """
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from typing import Protocol
 
 import dns.asyncresolver
@@ -14,6 +16,8 @@ import dns.exception
 import dns.rdata
 import dns.rdtypes.ANY.TXT
 import dns.resolver
+
+from techscope.domain.enums import FailureReasonEnum
 
 logger = logging.getLogger(__name__)
 
@@ -35,19 +39,27 @@ MAXIMUM_CONCURRENT_LOOKUPS = 10
 TXT_STRING_ENCODING = "utf-8"
 TXT_DECODE_ERROR_POLICY = "replace"
 
-# Every ordinary way a lookup comes back with nothing to say.
-EMPTY_ANSWER_ERRORS = (
-    dns.resolver.NXDOMAIN,
-    dns.resolver.NoAnswer,
-    dns.resolver.NoNameservers,
-    dns.exception.Timeout,
-)
+# The ordinary ways a lookup comes back with nothing to say. Everything else did not finish.
+ABSENT_RECORD_ERRORS = (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer)
+
+
+@dataclass(frozen=True, slots=True)
+class DnsAnswer:
+    """What one lookup produced, and whether it actually finished.
+
+    Empty records with no failure mean the name publishes nothing of that type. Empty records
+    with a failure mean nothing is known: a lookup that timed out has not said "no TXT record",
+    and a scan that reads it that way silently loses every detection those records carry.
+    """
+
+    records: tuple[str, ...]
+    failure: FailureReasonEnum | None = None
 
 
 class Resolver(Protocol):
-    """Answers one record type for one name. Never raises: nothing found is an empty answer."""
+    """Answers one record type for one name. Never raises: a problem comes back on the answer."""
 
-    async def resolve(self, name: str, record_type: str) -> tuple[str, ...]: ...
+    async def resolve(self, name: str, record_type: str) -> DnsAnswer: ...
 
 
 def build_async_resolver(nameservers: tuple[str, ...] = ()) -> dns.asyncresolver.Resolver:
@@ -78,23 +90,29 @@ class DnsPythonResolver:
         self._resolver = resolver
         self._in_flight = asyncio.Semaphore(MAXIMUM_CONCURRENT_LOOKUPS)
 
-    async def resolve(self, name: str, record_type: str) -> tuple[str, ...]:
+    async def resolve(self, name: str, record_type: str) -> DnsAnswer:
         async with self._in_flight:
             return await self._resolve_now(name, record_type)
 
-    async def _resolve_now(self, name: str, record_type: str) -> tuple[str, ...]:
+    async def _resolve_now(self, name: str, record_type: str) -> DnsAnswer:
         try:
             answer = await self._resolver.resolve(name, record_type)
-        except EMPTY_ANSWER_ERRORS as error:
-            logger.debug("%s has no usable %s record: %s", name, record_type, type(error).__name__)
+        except ABSENT_RECORD_ERRORS as error:
+            logger.debug("%s has no %s record: %s", name, record_type, type(error).__name__)
 
-            return ()
+            return DnsAnswer(records=())
+        except dns.exception.Timeout:
+            logger.debug(
+                "%s %s lookup timed out after %.1fs", name, record_type, RECORD_TIMEOUT_SECONDS
+            )
+
+            return DnsAnswer(records=(), failure=FailureReasonEnum.TIMEOUT)
         except dns.exception.DNSException as error:
             logger.warning("%s %s lookup failed: %r", name, record_type, error)
 
-            return ()
+            return DnsAnswer(records=(), failure=FailureReasonEnum.COLLECTOR_ERROR)
 
-        return tuple(_decide_record_text(record) for record in answer)
+        return DnsAnswer(records=tuple(_decide_record_text(record) for record in answer))
 
 
 def _decide_record_text(record: dns.rdata.Rdata) -> str:

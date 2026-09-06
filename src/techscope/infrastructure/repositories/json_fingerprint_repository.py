@@ -17,10 +17,10 @@ from pathlib import Path
 
 from techscope.domain.enums import KEYED_CHANNELS, ChannelEnum
 from techscope.domain.errors import FingerprintLoadError
-from techscope.domain.models import Fingerprint, Pattern
+from techscope.domain.models import Fingerprint, Implication, Pattern
 from techscope.infrastructure.repositories.wappalyzer_pattern import (
+    build_implication,
     build_pattern,
-    decide_implied_technology,
 )
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ def _build_fingerprint(name: str, raw_definition: object) -> Fingerprint:
     return Fingerprint(
         name=name,
         patterns=_build_patterns(name, definition),
-        implies=_build_implied_technologies(name, definition.get(IMPLIES_KEY)),
+        implies=_build_implications(name, definition.get(IMPLIES_KEY)),
         categories=_build_categories(definition.get(CATEGORIES_KEY)),
     )
 
@@ -190,7 +190,7 @@ def _build_dns_patterns(technology: str, raw_value: object) -> list[Pattern]:
     return patterns
 
 
-def _build_implied_technologies(technology: str, raw_value: object) -> tuple[str, ...]:
+def _build_implications(technology: str, raw_value: object) -> tuple[Implication, ...]:
     """An implied technology is reported as a detection, so bad data here is an error."""
     if raw_value is None:
         return ()
@@ -200,7 +200,7 @@ def _build_implied_technologies(technology: str, raw_value: object) -> tuple[str
     if texts is None:
         raise FingerprintLoadError(technology, "implies must be text or a list of text")
 
-    return tuple(decide_implied_technology(text) for text in texts)
+    return tuple(build_implication(technology, text) for text in texts)
 
 
 def _build_categories(raw_value: object) -> tuple[int, ...]:

@@ -29,7 +29,12 @@ The tool talks to real, third-party websites. Be a polite, predictable client.
   types concurrently. Two bounds, not one: 1 s per nameserver attempt so a dead nameserver is
   abandoned quickly, and 5 s for the whole lookup so the TCP retry a truncated TXT answer needs
   still fits. A single 3 s budget silently returned empty TXT answers a third of the time.
-  `NXDOMAIN` / `NoAnswer` / timeout → empty list for that record type, logged at DEBUG.
+  `NXDOMAIN` / `NoAnswer` → empty list for that record type, logged at DEBUG: an absent record
+  is an answer. A timeout or a resolver breakdown is not: it is an empty list *plus* a
+  `CollectionFailure` (`dns: timeout` / `collector_error`) naming the record type, so the
+  details file and the WARNING log say the records were never read rather than that they do
+  not exist. Measured before this: six system-resolver runs returned 40-46 detections with
+  `problems: []` everywhere.
 - **Accuracy rule.** A detection needs a real signal match. Do not infer technologies from
   company names, domain names, or "the domain is stripe.com so Stripe is used". `implies` chains
   from fingerprints are allowed because they are data-driven.

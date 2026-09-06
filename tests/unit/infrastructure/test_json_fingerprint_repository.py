@@ -8,7 +8,7 @@ import pytest
 
 from techscope.domain.enums import ChannelEnum
 from techscope.domain.errors import FingerprintLoadError
-from techscope.domain.models import Fingerprint
+from techscope.domain.models import Fingerprint, Implication
 from techscope.infrastructure.repositories.json_fingerprint_repository import (
     JsonFingerprintRepository,
 )
@@ -143,21 +143,21 @@ def test_repository_skips_a_schema_declaration_key(tmp_path: Path) -> None:
 def test_repository_reads_implies_given_as_a_string(tmp_path: Path) -> None:
     fingerprint = load_one(tmp_path, "Some Tech", {"scriptSrc": "s", "implies": "PHP"})
 
-    assert fingerprint.implies == ("PHP",)
+    assert fingerprint.implies == (Implication(technology="PHP", confidence=100),)
 
 
 def test_repository_reads_implies_given_as_a_list(tmp_path: Path) -> None:
     fingerprint = load_one(tmp_path, "Some Tech", {"scriptSrc": "s", "implies": ["PHP", "MySQL"]})
 
-    assert fingerprint.implies == ("PHP", "MySQL")
+    assert [implication.technology for implication in fingerprint.implies] == ["PHP", "MySQL"]
 
 
-def test_repository_strips_modifiers_from_an_implied_technology(tmp_path: Path) -> None:
+def test_repository_keeps_the_confidence_of_an_implied_technology(tmp_path: Path) -> None:
     definition = {"scriptSrc": "s", "implies": r"PHP\;confidence:50"}
 
     fingerprint = load_one(tmp_path, "Some Tech", definition)
 
-    assert fingerprint.implies == ("PHP",)
+    assert fingerprint.implies == (Implication(technology="PHP", confidence=50),)
 
 
 def test_repository_reads_categories(tmp_path: Path) -> None:
