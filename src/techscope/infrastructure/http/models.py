@@ -29,3 +29,10 @@ class FetchFailure:
 
     reason: FailureReasonEnum
     detail: str
+
+
+@dataclass(frozen=True, slots=True)
+class RedirectTarget:
+    """Where a response said to go next. A hop, not a result and not a failure."""
+
+    location: str

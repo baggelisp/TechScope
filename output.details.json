@@ -1,15 +1,15 @@
 {
   "summary": {
     "domains": 20,
-    "detections": 45,
+    "detections": 46,
     "domains_with_problems": 0,
-    "duration_seconds": 6.737
+    "duration_seconds": 5.58
   },
   "domains": [
     {
       "domain": "notion.so",
       "observed_url": "https://www.notion.com/",
-      "duration_seconds": 1.398,
+      "duration_seconds": 5.579,
       "technologies": [
         "Cloudflare"
       ],
@@ -22,7 +22,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c38181a2e964f-ATH"
+              "matched": "a36cad7eef80323a-ATH"
             },
             {
               "channel": "header",
@@ -38,7 +38,7 @@
     {
       "domain": "stripe.com",
       "observed_url": "https://stripe.com/en-gr",
-      "duration_seconds": 5.261,
+      "duration_seconds": 1.488,
       "technologies": [
         "Google Workspace",
         "Stripe"
@@ -82,7 +82,7 @@
               "channel": "header",
               "key": "x-stripe-server-rpc-duration-micros",
               "pattern": "X-Stripe-.*",
-              "matched": "46460"
+              "matched": "43105"
             }
           ]
         }
@@ -92,9 +92,10 @@
     {
       "domain": "intercom.com",
       "observed_url": "https://www.intercom.com/",
-      "duration_seconds": 5.062,
+      "duration_seconds": 1.276,
       "technologies": [
-        "Google Workspace"
+        "Google Workspace",
+        "HubSpot"
       ],
       "detections": [
         {
@@ -120,6 +121,18 @@
               "matched": "google.com"
             }
           ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
         }
       ],
       "problems": []
@@ -127,7 +140,7 @@
     {
       "domain": "shopify.com",
       "observed_url": "https://www.shopify.com/",
-      "duration_seconds": 1.428,
+      "duration_seconds": 0.397,
       "technologies": [
         "Cloudflare",
         "Google Workspace",
@@ -149,7 +162,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c3817c93ff1a2-ATH"
+              "matched": "a36cad7e19f55ef7-ATH"
             }
           ]
         },
@@ -219,7 +232,7 @@
     {
       "domain": "hubspot.com",
       "observed_url": "https://www.hubspot.com/",
-      "duration_seconds": 1.563,
+      "duration_seconds": 0.557,
       "technologies": [
         "Cloudflare",
         "Google Workspace",
@@ -234,7 +247,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c3817b97d0c6a-ATH"
+              "matched": "a36cad7e0abf5043-ATH"
             },
             {
               "channel": "header",
@@ -274,7 +287,7 @@
     {
       "domain": "linear.app",
       "observed_url": "https://linear.app/",
-      "duration_seconds": 2.255,
+      "duration_seconds": 0.539,
       "technologies": [
         "Cloudflare",
         "Google Workspace"
@@ -288,7 +301,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c38175bd10b7e-ATH"
+              "matched": "a36cad7d6bde6f5f-ATH"
             },
             {
               "channel": "header",
@@ -334,7 +347,7 @@
     {
       "domain": "vercel.com",
       "observed_url": "https://vercel.com/",
-      "duration_seconds": 2.436,
+      "duration_seconds": 0.339,
       "technologies": [
         "Google Workspace",
         "SendGrid"
@@ -382,7 +395,7 @@
     {
       "domain": "figma.com",
       "observed_url": "https://www.figma.com/",
-      "duration_seconds": 3.424,
+      "duration_seconds": 1.044,
       "technologies": [
         "Google Workspace"
       ],
@@ -417,7 +430,7 @@
     {
       "domain": "webflow.com",
       "observed_url": "https://webflow.com/",
-      "duration_seconds": 4.922,
+      "duration_seconds": 1.234,
       "technologies": [
         "Cloudflare",
         "Google Workspace",
@@ -432,7 +445,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c38194f4870a5-IAD"
+              "matched": "a36cad7fca30073c-IAD"
             },
             {
               "channel": "header",
@@ -484,7 +497,7 @@
     {
       "domain": "loom.com",
       "observed_url": "https://www.loom.com/",
-      "duration_seconds": 6.736,
+      "duration_seconds": 0.342,
       "technologies": [],
       "detections": [],
       "problems": []
@@ -492,7 +505,7 @@
     {
       "domain": "pipedrive.com",
       "observed_url": "https://www.pipedrive.com/",
-      "duration_seconds": 5.279,
+      "duration_seconds": 0.818,
       "technologies": [
         "Cloudflare",
         "Google Workspace"
@@ -506,7 +519,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c38210e15ee8b-ATH"
+              "matched": "a36cad811fc4eed0-ATH"
             },
             {
               "channel": "header",
@@ -558,7 +571,7 @@
     {
       "domain": "typeform.com",
       "observed_url": "https://www.typeform.com/",
-      "duration_seconds": 1.732,
+      "duration_seconds": 0.87,
       "technologies": [
         "Cloudflare",
         "Google Analytics 4",
@@ -575,7 +588,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c38227aaeee7b-ATH"
+              "matched": "a36cad814e12e5ab-ATH"
             },
             {
               "channel": "header",
@@ -651,7 +664,7 @@
     {
       "domain": "calendly.com",
       "observed_url": "https://calendly.com/",
-      "duration_seconds": 1.456,
+      "duration_seconds": 0.832,
       "technologies": [
         "Cloudflare",
         "Google Workspace",
@@ -666,7 +679,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c3820dd3277ac-ATH"
+              "matched": "a36cad7faec6da88-ATH"
             },
             {
               "channel": "header",
@@ -718,7 +731,7 @@
     {
       "domain": "segment.com",
       "observed_url": "https://www.twilio.com/en-us/segment",
-      "duration_seconds": 2.375,
+      "duration_seconds": 1.418,
       "technologies": [
         "Google Analytics 4",
         "Google Workspace",
@@ -767,7 +780,7 @@
     {
       "domain": "hotjar.com",
       "observed_url": "https://contentsquare.com/hotjar/?utm_campaign=exp__hj_hp_redirection",
-      "duration_seconds": 4.203,
+      "duration_seconds": 0.707,
       "technologies": [
         "Google Workspace",
         "HubSpot"
@@ -815,7 +828,7 @@
     {
       "domain": "drift.com",
       "observed_url": "https://www.salesloft.com/platform/chat-agents",
-      "duration_seconds": 1.436,
+      "duration_seconds": 1.235,
       "technologies": [
         "Cloudflare",
         "Google Workspace",
@@ -830,7 +843,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c383008afae8b-ATH"
+              "matched": "a36cad8b1edb2742-ATH"
             },
             {
               "channel": "header",
@@ -894,7 +907,7 @@
     {
       "domain": "zendesk.com",
       "observed_url": "https://www.zendesk.com/",
-      "duration_seconds": 1.245,
+      "duration_seconds": 0.554,
       "technologies": [
         "Cloudflare",
         "Google Workspace",
@@ -915,7 +928,7 @@
               "channel": "header",
               "key": "cf-ray",
               "pattern": "cf-ray",
-              "matched": "a36c382cd99ed7bd-ATH"
+              "matched": "a36cad86780feedc-ATH"
             }
           ]
         },
@@ -967,7 +980,7 @@
     {
       "domain": "mailchimp.com",
       "observed_url": "https://mailchimp.com/",
-      "duration_seconds": 1.328,
+      "duration_seconds": 0.207,
       "technologies": [
         "Google Analytics 4"
       ],
@@ -990,7 +1003,7 @@
     {
       "domain": "sendgrid.com",
       "observed_url": "https://www.twilio.com/en-us/sendgrid",
-      "duration_seconds": 1.621,
+      "duration_seconds": 0.835,
       "technologies": [
         "Google Analytics 4",
         "Google Workspace"
@@ -1026,7 +1039,7 @@
     {
       "domain": "sentry.io",
       "observed_url": "https://sentry.io/welcome/",
-      "duration_seconds": 1.843,
+      "duration_seconds": 1.1,
       "technologies": [
         "Google Workspace",
         "SendGrid"

@@ -55,6 +55,7 @@ class FailureReasonEnum(StrEnum):
     TIMEOUT = "timeout"
     TOO_MANY_REDIRECTS = "too_many_redirects"
     INVALID_HOST = "invalid_host"
+    PRIVATE_TARGET = "private_target"
     INVALID_RESPONSE = "invalid_response"
     DNS_UNRESOLVED = "dns_unresolved"
     COLLECTOR_ERROR = "collector_error"

@@ -7,6 +7,10 @@ requires-python = ">=3.13"
 dependencies = [
     "dnspython>=2.7",
     "httpx>=0.28",
+    # Already in the tree as an httpx dependency. It is named here because the SSRF guard must
+    # encode a host with exactly the library httpx encodes it with; an implicit version of that
+    # is a security property resting on someone else's dependency list.
+    "idna>=3.10",
 ]
 
 [project.scripts]
@@ -15,6 +19,7 @@ techscope = "techscope.presentation.cli:main"
 [dependency-groups]
 dev = [
     "mypy>=1.14",
+    "pip-audit>=2.10.1",
     "pytest>=8.3",
     "pytest-asyncio>=0.25",
     "respx>=0.22",

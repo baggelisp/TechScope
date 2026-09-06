@@ -40,4 +40,7 @@ docker-build:
 
 docker-scan:
 	# --user keeps the bind-mounted output writable on Linux, where the host uid is preserved.
-	docker run --rm --user "$$(id -u):$$(id -g)" -v "$(CURDIR):/data" $(IMAGE) scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --details $(DETAILS_FILE) --log-level INFO
+	# The scanner needs no capabilities and writes only to the mount, so it is given neither.
+	docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
+		--user "$$(id -u):$$(id -g)" -v "$(CURDIR):/data" $(IMAGE) \
+		scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --details $(DETAILS_FILE) --log-level INFO
