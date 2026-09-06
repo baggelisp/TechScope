@@ -103,7 +103,7 @@ HubSpot, Cloudflare-block pages.
 **E2E:** live; first real detections expected (Cloudflare, Shopify, HubSpot, Stripe…). Name the
 signal for each.
 
-## [~] 6. DNS collector
+## [~] 6. DNS collector — PR #6
 **Goal:** MX / TXT / CNAME on the apex, concurrent with the fetch.
 **Acceptance:** `domain/domain_name.py` gains `decide_apex_domain` (moved from feature 1, where
 it had no caller; the public-suffix trade-off is decided here and documented in the README).
