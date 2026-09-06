@@ -77,3 +77,20 @@ def _is_usable_host(host: str) -> bool:
     has_inner_whitespace = any(character.isspace() for character in host)
 
     return has_several_labels and not has_empty_label and not has_inner_whitespace
+
+
+def decide_apex_domain(domain: str) -> str:
+    """The name to ask DNS about for this domain.
+
+    A ``www.`` prefix is stripped, because ``www.example.com`` and ``example.com`` are the same
+    organisation. Nothing else is: reducing ``blog.example.com`` to ``example.com`` requires
+    knowing where the registrable domain begins, and guessing at it attributes another
+    organisation's DNS to this one. ``myblog.wordpress.com`` would become ``wordpress.com``,
+    whose MX records belong to Automattic, and the scan would report Automattic as this blog's
+    mail provider. Without a public suffix list that guess cannot be made safely, so a domain
+    below the registrable level simply returns fewer DNS signals — a miss rather than a wrong
+    answer.
+    """
+    without_www = _decide_host_without_www(domain)
+
+    return without_www.rstrip(LABEL_SEPARATOR)

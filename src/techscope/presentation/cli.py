@@ -28,6 +28,8 @@ DEFAULT_LOG_LEVEL = "WARNING"
 LOG_LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR")
 LOG_FORMAT = "%(levelname)s %(name)s: %(message)s"
 DOMAINS_FILE_ENCODING = "utf-8"
+MINIMUM_CONCURRENCY = 1
+MINIMUM_TIMEOUT_SECONDS = 0.1
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +68,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _run_scan_command(scan_arguments: ScanArguments) -> int:
+    if scan_arguments.concurrency < MINIMUM_CONCURRENCY:
+        logger.error(
+            "--concurrency must be at least %d, got %d",
+            MINIMUM_CONCURRENCY,
+            scan_arguments.concurrency,
+        )
+
+        return EXIT_USAGE
+
+    if scan_arguments.timeout_seconds < MINIMUM_TIMEOUT_SECONDS:
+        logger.error(
+            "--timeout must be at least %.1f seconds, got %.1f",
+            MINIMUM_TIMEOUT_SECONDS,
+            scan_arguments.timeout_seconds,
+        )
+
+        return EXIT_USAGE
+
     text = _read_domains_text_or_none(scan_arguments.domains_path)
 
     if text is None:

@@ -92,7 +92,7 @@ challenge pages, keeping headers. `application/ports/signal_collector.py` (`Sign
 `bootstrap.py` with no extractors yet. Tests with `respx`.
 **E2E:** first live run — sequential is fine; verify 20/20 domains present and no crash.
 
-## [~] 5. Response extractors: headers, cookies, script src, meta, html — PR #5
+## [x] 5. Response extractors: headers, cookies, script src, meta, html — PR #5
 **Goal:** five pure extractors from `FetchResult` → `tuple[Signal, ...]`.
 **Acceptance:** `infrastructure/extractors/headers.py`, `cookies.py` (names from every
 `Set-Cookie`), `scripts.py` (`<script src>` incl. protocol-relative and unquoted attrs; inline
@@ -103,7 +103,7 @@ HubSpot, Cloudflare-block pages.
 **E2E:** live; first real detections expected (Cloudflare, Shopify, HubSpot, Stripe…). Name the
 signal for each.
 
-## [ ] 6. DNS collector
+## [~] 6. DNS collector
 **Goal:** MX / TXT / CNAME on the apex, concurrent with the fetch.
 **Acceptance:** `domain/domain_name.py` gains `decide_apex_domain` (moved from feature 1, where
 it had no caller; the public-suffix trade-off is decided here and documented in the README).
@@ -126,10 +126,12 @@ Segment snippets.
 
 ## [ ] 8. Concurrent scan, budget, structured output, details file
 **Goal:** the production run: bounded concurrency, hard budget, deterministic JSON, clean logs.
-**Acceptance:** `application/use_cases/scan_domains.py` (`ScanDomainsUseCase`) with
-`asyncio.Semaphore(concurrency)`, per-domain isolation, `--timeout`/`--concurrency` honoured,
-whole-run deadline; WARNING line per blocked/failed domain with reason; summary line (domains,
-detections, blocked, seconds). `application/presenters/scan_report_presenter.py`
+**Acceptance:** bounded concurrency and `--concurrency` moved forward into feature 6, because
+adding DNS took the run from 16 s to 61 s and breached the assignment's 60 s budget; bootstrap
+already fans out under a semaphore and per-domain isolation already lives in `ScanDomainUseCase`.
+What remains here: `application/use_cases/scan_domains.py` (`ScanDomainsUseCase`) taking that
+orchestration out of the composition root, a whole-run deadline, a WARNING line per blocked or
+failed domain with its reason, and a summary line (domains, detections, blocked, seconds). `application/presenters/scan_report_presenter.py`
 (`present_summary`, `present_details`) turns a `ScanReport` into JSON-ready records;
 `JsonReportWriter` uses it for both `output.json` and `--details <path>` (spec §6). Tests with
 fake slow collectors prove the budget and isolation.
