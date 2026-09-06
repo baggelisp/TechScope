@@ -10,6 +10,7 @@ from techscope.domain.models import Signal
 from techscope.infrastructure.extractors.cookies import extract_cookie_signals
 from techscope.infrastructure.extractors.headers import extract_header_signals
 from techscope.infrastructure.extractors.html import extract_html_signal
+from techscope.infrastructure.extractors.jsglobals import extract_js_global_signals
 from techscope.infrastructure.extractors.meta import extract_meta_signals
 from techscope.infrastructure.extractors.observed_response import ObservedResponse
 from techscope.infrastructure.extractors.scripts import extract_script_signals
@@ -21,5 +22,6 @@ EXTRACTORS: tuple[Extractor, ...] = (
     extract_cookie_signals,
     extract_script_signals,
     extract_meta_signals,
+    extract_js_global_signals,
     extract_html_signal,
 )

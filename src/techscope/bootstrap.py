@@ -9,6 +9,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from techscope.application.ports.domain_scanner import DomainScanner
 from techscope.application.ports.fingerprint_repository import FingerprintRepository
 from techscope.application.ports.scan_report_writer import ScanReportWriter
 from techscope.application.ports.signal_collector import SignalCollector
@@ -85,7 +86,7 @@ async def _run_scan(options: ScanOptions) -> ScanReport:
 
 
 async def scan_every_domain(
-    scan_domain: ScanDomainUseCase, domains: tuple[str, ...], concurrency: int
+    scan_domain: DomainScanner, domains: tuple[str, ...], concurrency: int
 ) -> tuple[DomainScanResult, ...]:
     """Scan domains in parallel, bounded, and return one result per domain in input order.
 

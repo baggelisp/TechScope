@@ -179,7 +179,7 @@ def test_registry_lists_every_extractor_once() -> None:
 
 
 def test_registry_covers_every_response_channel() -> None:
-    body = '<script src="https://a.example/b.js"></script><script>run();</script>'
+    body = '<script src="https://a.example/b.js"></script><script>window.run = 1;</script>'
     body += '<meta name="generator" content="WordPress">'
     response = build_response(body=body, headers=(("set-cookie", "a=1"),))
     extractors: tuple[Extractor, ...] = EXTRACTORS
@@ -191,5 +191,6 @@ def test_registry_covers_every_response_channel() -> None:
         ChannelEnum.SCRIPT_SRC,
         ChannelEnum.SCRIPT_INLINE,
         ChannelEnum.META,
+        ChannelEnum.JS_GLOBAL,
         ChannelEnum.HTML,
     }
