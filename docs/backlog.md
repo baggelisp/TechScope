@@ -228,7 +228,7 @@ that changes detections is a bug — and the runtime no worse than +10%.
 **E2E:** `docker compose up api` + `curl -X POST /scans` with the 20 domains; response matches
 the CLI `--details` run for the same domains (modulo timing); under 60 s.
 
-## [~] 12. Web app — Next.js (only after 11 is merged)
+## [~] 12. Web app — Next.js (only after 11 is merged) — PR #12
 **Goal:** run a scan from the browser and see the evidence behind every detection.
 **Acceptance:**
 - `web/` Next.js (App Router, TypeScript, ESLint, no static export). Two routed pages: a scan
