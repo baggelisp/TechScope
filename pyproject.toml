@@ -52,6 +52,13 @@ strict = true
 warn_unreachable = true
 disallow_any_explicit = true
 
+[[tool.mypy.overrides]]
+# dnspython ships no annotations for its exception and rdata constructors. Building them is the
+# only way to exercise the adapter whose entire job is translating them, so the check is relaxed
+# for that one test module rather than silenced with inline ignores.
+module = "tests.unit.infrastructure.test_dns_resolver"
+disallow_untyped_calls = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

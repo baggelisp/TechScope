@@ -26,8 +26,9 @@ technology list.
 | Fingerprint loading, Wappalyzer format | done |
 | Matching signals against fingerprints | done |
 | HTTP fetch, response channels | backlog 4–5 |
-| DNS and JavaScript-global channels | backlog 6–7 |
-| Concurrency and the run budget | backlog 8 |
+| DNS channel, bounded concurrency | done |
+| JavaScript-global channel | backlog 7 |
+| Run deadline and structured output | backlog 8 |
 
 ## Install
 
@@ -129,6 +130,20 @@ dropped pattern looks exactly like a technology that is not in use.
 That claim is measured rather than asserted: the complete upstream database of 7,613 technologies
 loads through this repository in 0.4 s, producing 13,373 patterns across all ten channels with no
 code change. Point `--fingerprints` at any such file to use it.
+
+### DNS
+
+Mail, verification and alias records are read from the apex, three record types at once, with
+no more than ten lookups in flight across the whole run. That bound is not politeness theatre:
+scanning twenty domains ten at a time means thirty simultaneous queries, and unbounded the
+resolver returned 661 to 676 records and a different number on every run. Bounded, it returns
+749 every time, and faster. Three consecutive scans now produce byte-identical output.
+
+A `www.` prefix is stripped, and nothing else is: reducing `blog.example.com` to `example.com`
+needs a public suffix list, and guessing wrong attributes another organisation's DNS to this
+one. `myblog.wordpress.com` would become `wordpress.com`, whose mail records belong to
+Automattic. A domain below the registrable level therefore yields fewer DNS signals, which is a
+miss rather than a wrong answer.
 
 ### A limitation worth stating
 

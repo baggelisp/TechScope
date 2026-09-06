@@ -13,9 +13,17 @@ from techscope.application.ports.fingerprint_repository import FingerprintReposi
 from techscope.application.ports.scan_report_writer import ScanReportWriter
 from techscope.application.ports.signal_collector import SignalCollector
 from techscope.application.use_cases.scan_domain import ScanDomainUseCase
+from techscope.domain.enums import FailureReasonEnum
 from techscope.domain.matcher import build_fingerprint_index
-from techscope.domain.models import DomainScanResult, FingerprintIndex, ScanReport
+from techscope.domain.models import (
+    CollectionFailure,
+    DomainScanResult,
+    FingerprintIndex,
+    ScanReport,
+)
+from techscope.infrastructure.collectors.dns_collector import DnsSignalCollector
 from techscope.infrastructure.collectors.http_collector import HttpSignalCollector
+from techscope.infrastructure.dns.resolver import DnsPythonResolver, build_async_resolver
 from techscope.infrastructure.http.homepage_fetcher import (
     RETRY_BACKOFF_SECONDS,
     TOTAL_TIMEOUT_SECONDS,
@@ -62,9 +70,12 @@ async def _run_scan(options: ScanOptions) -> ScanReport:
             retry_backoff_seconds=RETRY_BACKOFF_SECONDS,
             total_timeout_seconds=options.timeout_seconds,
         )
-        collectors: tuple[SignalCollector, ...] = (HttpSignalCollector(fetcher=fetcher),)
+        collectors: tuple[SignalCollector, ...] = (
+            HttpSignalCollector(fetcher=fetcher),
+            DnsSignalCollector(resolver=DnsPythonResolver(build_async_resolver())),
+        )
         scan_domain = ScanDomainUseCase(collectors=collectors, fingerprint_index=index)
-        results = await _scan_every_domain(scan_domain, options.domains)
+        results = await scan_every_domain(scan_domain, options.domains, options.concurrency)
 
     report = ScanReport(results=results)
     writer: ScanReportWriter = JsonReportWriter()
@@ -73,16 +84,50 @@ async def _run_scan(options: ScanOptions) -> ScanReport:
     return report
 
 
-async def _scan_every_domain(
-    scan_domain: ScanDomainUseCase, domains: tuple[str, ...]
+async def scan_every_domain(
+    scan_domain: ScanDomainUseCase, domains: tuple[str, ...], concurrency: int
 ) -> tuple[DomainScanResult, ...]:
-    """One domain at a time. Backlog item 8 replaces this with the bounded concurrent run."""
-    results: list[DomainScanResult] = []
+    """Scan domains in parallel, bounded, and return one result per domain in input order.
 
-    for domain in domains:
-        results.append(await scan_domain.execute(domain))
+    Sequential scanning was enough until DNS joined: three lookups per domain took the run from
+    16 s to 61 s, past the 60 s the assignment allows. Backlog item 8 still owns the whole-run
+    deadline and the structured output.
 
-    return tuple(results)
+    Exceptions are collected rather than raised. Without that, one domain reaching an unexpected
+    state would abort the gather and the run would write no output at all — the blast radius
+    would be every domain, not the one that failed.
+    """
+    limit = asyncio.Semaphore(concurrency)
+
+    async def scan_one(domain: str) -> DomainScanResult:
+        async with limit:
+            return await scan_domain.execute(domain)
+
+    outcomes = await asyncio.gather(
+        *(scan_one(domain) for domain in domains), return_exceptions=True
+    )
+
+    return tuple(
+        _decide_domain_result(domain, outcome)
+        for domain, outcome in zip(domains, outcomes, strict=True)
+    )
+
+
+def _decide_domain_result(
+    domain: str, outcome: DomainScanResult | BaseException
+) -> DomainScanResult:
+    if isinstance(outcome, DomainScanResult):
+        return outcome
+
+    if not isinstance(outcome, Exception):
+        raise outcome
+
+    logger.error("scanning %s failed unexpectedly: %r", domain, outcome)
+    failure = CollectionFailure(
+        collector="scan", reason=FailureReasonEnum.COLLECTOR_ERROR, detail=repr(outcome)
+    )
+
+    return DomainScanResult(domain=domain, detections=(), failures=(failure,))
 
 
 def _load_fingerprint_index(fingerprints_path: Path) -> FingerprintIndex:

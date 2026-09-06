@@ -2,7 +2,7 @@
 
 import pytest
 
-from techscope.domain.domain_name import decide_domain_or_none
+from techscope.domain.domain_name import decide_apex_domain, decide_domain_or_none
 
 NORMALISED_CASES = [
     ("example.com", "example.com", "a bare domain is unchanged"),
@@ -57,3 +57,25 @@ def test_decide_domain_or_none_normalises_usable_line(raw_line: str, expected_do
 )
 def test_decide_domain_or_none_rejects_unusable_line(raw_line: str) -> None:
     assert decide_domain_or_none(raw_line) is None
+
+
+APEX_CASES = [
+    ("example.com", "example.com", "an apex domain is unchanged"),
+    ("www.example.com", "example.com", "a www prefix is stripped"),
+    ("bbc.co.uk", "bbc.co.uk", "a multi-part public suffix is left alone"),
+    ("www.bbc.co.uk", "bbc.co.uk", "www is stripped above a multi-part suffix"),
+    ("blog.example.com", "blog.example.com", "a subdomain is not reduced"),
+    ("myblog.wordpress.com", "myblog.wordpress.com", "a hosted subdomain keeps its own name"),
+    ("project.github.io", "project.github.io", "a pages subdomain keeps its own name"),
+    ("example.com.", "example.com", "a trailing dot is removed"),
+    ("wwwx.example.com", "wwwx.example.com", "a label merely starting with www is kept"),
+]
+
+
+@pytest.mark.parametrize(
+    ("domain", "expected_apex"),
+    [(domain, expected) for domain, expected, _ in APEX_CASES],
+    ids=[description for _, _, description in APEX_CASES],
+)
+def test_decide_apex_domain_resolves_the_dns_name(domain: str, expected_apex: str) -> None:
+    assert decide_apex_domain(domain) == expected_apex
