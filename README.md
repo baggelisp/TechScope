@@ -28,7 +28,7 @@ technology list.
 | HTTP fetch, response channels | backlog 4–5 |
 | DNS channel, bounded concurrency | done |
 | JavaScript-global channel | done |
-| Run deadline and structured output | backlog 8 |
+| Run deadline and structured output | done |
 
 ## Install
 
@@ -50,9 +50,12 @@ Options on the `scan` command:
 | Flag | Default | Meaning |
 |---|---|---|
 | `-o`, `--output` | `output.json` | where the results JSON is written |
+| `--details` | not written | a second file with the evidence, problems and timings behind every result |
 | `--fingerprints` | the packaged set | a Wappalyzer-format JSON database to match against |
-| `--concurrency` | `10` | domains scanned in parallel (applied from backlog 8) |
-| `--timeout` | `15.0` | seconds allowed per domain (applied from backlog 8) |
+| `--nameserver` | the system resolver | DNS server to query, repeatable |
+| `--concurrency` | `10` | domains scanned in parallel |
+| `--timeout` | `15.0` | seconds allowed per domain |
+| `--deadline` | `55.0` | seconds allowed for the whole run |
 | `--log-level` | `WARNING` | verbosity on stderr: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 
 The input file is one domain per line. Blank lines and `#` comments are skipped; schemes, a
@@ -116,6 +119,31 @@ root rather than a change to the scanner.
 
 The full rules live in `.claude/rules/architecture.md`; the reasoning is in
 `docs/superpowers/specs/2026-09-05-techscope-design.md`.
+
+## What the output does not say, and where to look
+
+`output.json` is the shape the assignment asks for, and it has one blind spot: a domain that
+runs nothing detectable and a domain that refused to answer both come back as an empty list.
+`--details` is where that difference lives. It records, per domain, every detection with the
+channel, pattern and matched text that produced it; every problem with the collector and reason
+that caused it; how long the domain took; and a run summary.
+
+```json
+{
+  "domain": "shopify.com",
+  "duration_seconds": 1.335,
+  "technologies": ["Cloudflare", "Google Workspace", "SendGrid", "Shopify"],
+  "detections": [
+    {"name": "Cloudflare", "confidence": 100,
+     "evidence": [{"channel": "header", "key": "cf-cache-status",
+                   "pattern": "cf-cache-status", "matched": "BYPASS"}]}
+  ],
+  "problems": []
+}
+```
+
+Nothing is reported that cannot be justified this way. The same shapes are produced by one
+presenter, so a future HTTP API cannot drift from the file.
 
 ## Fingerprints are data
 

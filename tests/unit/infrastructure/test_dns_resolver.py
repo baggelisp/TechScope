@@ -183,3 +183,15 @@ async def test_resolver_bounds_how_many_lookups_it_has_in_flight(
     await asyncio.gather(*(resolver.resolve(NAME, "MX") for _ in range(requested)))
 
     assert counter.peak == MAXIMUM_CONCURRENT_LOOKUPS
+
+
+def test_build_async_resolver_uses_the_system_nameservers_by_default() -> None:
+    """Given none, the machine's own configuration stands."""
+    system_resolver = dns.resolver.Resolver()
+
+    assert build_async_resolver().nameservers == system_resolver.nameservers
+
+
+def test_build_async_resolver_uses_the_nameservers_it_is_given() -> None:
+    """A run can be made reproducible by naming a resolver known to answer."""
+    assert build_async_resolver(("1.1.1.1", "8.8.8.8")).nameservers == ["1.1.1.1", "8.8.8.8"]

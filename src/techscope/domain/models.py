@@ -129,9 +129,15 @@ class DomainScanResult:
     domain: str
     detections: tuple[Detection, ...]
     failures: tuple[CollectionFailure, ...]
+    # None where the scan never finished: a cut-short domain has no duration to report,
+    # and zero would make the slowest domains look like the fastest.
+    duration_seconds: float | None
 
     def list_technology_names(self) -> tuple[str, ...]:
         return tuple(detection.name for detection in self.detections)
+
+    def has_failures(self) -> bool:
+        return len(self.failures) > 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,3 +145,10 @@ class ScanReport:
     """One whole run, holding a result per input domain in input order."""
 
     results: tuple[DomainScanResult, ...]
+    duration_seconds: float
+
+    def count_detections(self) -> int:
+        return sum(len(result.detections) for result in self.results)
+
+    def list_troubled_results(self) -> tuple[DomainScanResult, ...]:
+        return tuple(result for result in self.results if result.has_failures())

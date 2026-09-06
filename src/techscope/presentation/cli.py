@@ -10,6 +10,7 @@ import logging
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
+from ipaddress import ip_address
 from pathlib import Path
 
 from techscope import bootstrap
@@ -30,6 +31,7 @@ LOG_FORMAT = "%(levelname)s %(name)s: %(message)s"
 DOMAINS_FILE_ENCODING = "utf-8"
 MINIMUM_CONCURRENCY = 1
 MINIMUM_TIMEOUT_SECONDS = 0.1
+MINIMUM_DEADLINE_SECONDS = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,9 +40,12 @@ class ScanArguments:
 
     domains_path: Path
     output_path: Path
+    details_path: Path | None
     fingerprints_path: Path
+    nameservers: tuple[str, ...]
     concurrency: int
     timeout_seconds: float
+    deadline_seconds: float
     log_level: str
 
 
@@ -86,6 +91,22 @@ def _run_scan_command(scan_arguments: ScanArguments) -> int:
 
         return EXIT_USAGE
 
+    if scan_arguments.deadline_seconds < MINIMUM_DEADLINE_SECONDS:
+        logger.error(
+            "--deadline must be at least %.1f seconds, got %.1f",
+            MINIMUM_DEADLINE_SECONDS,
+            scan_arguments.deadline_seconds,
+        )
+
+        return EXIT_USAGE
+
+    unusable_nameserver = _decide_unusable_nameserver_or_none(scan_arguments.nameservers)
+
+    if unusable_nameserver is not None:
+        logger.error("--nameserver %s is not an IP address", unusable_nameserver)
+
+        return EXIT_USAGE
+
     text = _read_domains_text_or_none(scan_arguments.domains_path)
 
     if text is None:
@@ -101,14 +122,28 @@ def _run_scan_command(scan_arguments: ScanArguments) -> int:
     options = bootstrap.ScanOptions(
         domains=domains,
         output_path=scan_arguments.output_path,
+        details_path=scan_arguments.details_path,
         fingerprints_path=scan_arguments.fingerprints_path,
+        nameservers=scan_arguments.nameservers,
         concurrency=scan_arguments.concurrency,
         timeout_seconds=scan_arguments.timeout_seconds,
+        deadline_seconds=scan_arguments.deadline_seconds,
     )
     bootstrap.run_scan(options)
     logger.info("scanned %d domains into %s", len(domains), scan_arguments.output_path)
 
     return EXIT_OK
+
+
+def _decide_unusable_nameserver_or_none(nameservers: tuple[str, ...]) -> str | None:
+    """dnspython wants addresses; a hostname there fails deep inside it as a traceback."""
+    for nameserver in nameservers:
+        try:
+            ip_address(nameserver)
+        except ValueError:
+            return nameserver
+
+    return None
 
 
 def _read_domains_text_or_none(domains_path: Path) -> str | None:
@@ -132,19 +167,32 @@ def _read_domains_text_or_none(domains_path: Path) -> str | None:
 def _build_scan_arguments(namespace: argparse.Namespace) -> ScanArguments:
     domains_file: str = namespace.domains_file
     output: str = namespace.output
+    details: str | None = namespace.details
     fingerprints: str = namespace.fingerprints
+    nameservers: list[str] = namespace.nameserver
     concurrency: int = namespace.concurrency
     timeout: float = namespace.timeout
+    deadline: float = namespace.deadline
     log_level: str = namespace.log_level
 
     return ScanArguments(
         domains_path=Path(domains_file),
         output_path=Path(output),
+        details_path=_decide_details_path_or_none(details),
         fingerprints_path=Path(fingerprints),
+        nameservers=tuple(nameservers),
         concurrency=concurrency,
         timeout_seconds=timeout,
+        deadline_seconds=deadline,
         log_level=log_level,
     )
+
+
+def _decide_details_path_or_none(details: str | None) -> Path | None:
+    if details is None:
+        return None
+
+    return Path(details)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -160,6 +208,24 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         default=DEFAULT_OUTPUT_PATH,
         help=f"where to write the results JSON (default: {DEFAULT_OUTPUT_PATH})",
+    )
+    scan.add_argument(
+        "--details",
+        default=None,
+        help="also write the evidence, problems and timings behind every result to this file",
+    )
+    scan.add_argument(
+        "--nameserver",
+        action="append",
+        default=[],
+        metavar="ADDRESS",
+        help="DNS server to query, repeatable (default: the system resolver)",
+    )
+    scan.add_argument(
+        "--deadline",
+        type=float,
+        default=bootstrap.DEFAULT_DEADLINE_SECONDS,
+        help=f"seconds allowed for the whole run (default: {bootstrap.DEFAULT_DEADLINE_SECONDS})",
     )
     scan.add_argument(
         "--fingerprints",

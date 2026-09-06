@@ -7,8 +7,7 @@
     "Stripe"
   ],
   "intercom.com": [
-    "Google Workspace",
-    "HubSpot"
+    "Google Workspace"
   ],
   "shopify.com": [
     "Cloudflare",
@@ -56,7 +55,8 @@
   ],
   "segment.com": [
     "Google Analytics 4",
-    "Google Workspace"
+    "Google Workspace",
+    "HubSpot"
   ],
   "hotjar.com": [
     "Google Workspace",
@@ -64,7 +64,8 @@
   ],
   "drift.com": [
     "Cloudflare",
-    "Google Workspace"
+    "Google Workspace",
+    "SendGrid"
   ],
   "zendesk.com": [
     "Cloudflare",

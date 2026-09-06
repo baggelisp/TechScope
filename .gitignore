@@ -9,7 +9,6 @@ dist/
 
 # E2E run artefacts (output.json IS committed — it is the submission)
 e2e.log
-output.details.json
 
 # Web viewer (backlog item 10)
 web/node_modules/

@@ -2,6 +2,7 @@
 
 DOMAINS_FILE ?= docs/domains.txt
 OUTPUT_FILE ?= output.json
+DETAILS_FILE ?= output.details.json
 IMAGE ?= techscope:local
 
 help:
@@ -32,11 +33,11 @@ fmt:
 
 e2e:
 	uv sync
-	/usr/bin/time -p uv run techscope scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --log-level INFO
+	/usr/bin/time -p uv run techscope scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --details $(DETAILS_FILE) --log-level INFO
 
 docker-build:
 	docker build --target cli -t $(IMAGE) .
 
 docker-scan:
 	# --user keeps the bind-mounted output writable on Linux, where the host uid is preserved.
-	docker run --rm --user "$$(id -u):$$(id -g)" -v "$(CURDIR):/data" $(IMAGE) scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --log-level INFO
+	docker run --rm --user "$$(id -u):$$(id -g)" -v "$(CURDIR):/data" $(IMAGE) scan $(DOMAINS_FILE) -o $(OUTPUT_FILE) --details $(DETAILS_FILE) --log-level INFO

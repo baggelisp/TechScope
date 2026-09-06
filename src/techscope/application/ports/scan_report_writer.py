@@ -9,4 +9,10 @@ from techscope.domain.models import ScanReport
 class ScanReportWriter(Protocol):
     """Persists a scan report. Implemented in ``infrastructure/writers``."""
 
-    def write(self, report: ScanReport, destination: Path) -> None: ...
+    def write_summary(self, report: ScanReport, destination: Path) -> None:
+        """The assignment's shape: ``{ "<domain>": [technologies] }``."""
+        ...
+
+    def write_details(self, report: ScanReport, destination: Path) -> None:
+        """Everything behind the summary: evidence, problems and timings."""
+        ...

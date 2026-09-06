@@ -180,3 +180,81 @@ def test_cli_with_an_unknown_flag_exits_with_the_usage_code(tmp_path: Path) -> N
         main(["scan", str(domains_file), "--nonsense"])
 
     assert raised.value.code == EXIT_USAGE
+
+
+@respx.mock
+def test_cli_scan_writes_the_details_file_when_asked(tmp_path: Path) -> None:
+    mock_every_host()
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+    details_path = tmp_path / "details.json"
+
+    exit_code = main(
+        [
+            "scan",
+            str(domains_file),
+            "-o",
+            str(tmp_path / "output.json"),
+            "--details",
+            str(details_path),
+        ]
+    )
+
+    assert exit_code == EXIT_OK
+    assert "summary" in json.loads(details_path.read_text(encoding="utf-8"))
+
+
+@respx.mock
+def test_cli_scan_writes_no_details_file_by_default(tmp_path: Path) -> None:
+    mock_every_host()
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+
+    main(["scan", str(domains_file), "-o", str(tmp_path / "output.json")])
+
+    assert list(tmp_path.glob("*details*")) == []
+
+
+def test_cli_scan_rejects_a_deadline_below_the_minimum(tmp_path: Path) -> None:
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+
+    exit_code = main(
+        ["scan", str(domains_file), "-o", str(tmp_path / "output.json"), "--deadline", "0"]
+    )
+
+    assert exit_code == EXIT_USAGE
+
+
+def test_cli_scan_rejects_a_nameserver_that_is_not_an_address(tmp_path: Path) -> None:
+    """dnspython wants addresses; a hostname there fails deep inside it as a traceback."""
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+
+    exit_code = main(
+        [
+            "scan",
+            str(domains_file),
+            "-o",
+            str(tmp_path / "output.json"),
+            "--nameserver",
+            "not-a-server",
+        ]
+    )
+
+    assert exit_code == EXIT_USAGE
+
+
+@respx.mock
+def test_cli_scan_accepts_a_nameserver_address(tmp_path: Path) -> None:
+    mock_every_host()
+    domains_file = write_domains_file(tmp_path, "stripe.com\n")
+
+    exit_code = main(
+        [
+            "scan",
+            str(domains_file),
+            "-o",
+            str(tmp_path / "output.json"),
+            "--nameserver",
+            "1.1.1.1",
+        ]
+    )
+
+    assert exit_code == EXIT_OK

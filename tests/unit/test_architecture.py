@@ -40,7 +40,9 @@ LAYER_BY_ROOT_MODULE = {
 ALLOWED_INTERNAL_PREFIXES = {
     DOMAIN: ("domain",),
     APPLICATION: ("domain", "application"),
-    INFRASTRUCTURE: ("domain", "application.ports", "infrastructure"),
+    # Presenters are pure shaping, shared with the HTTP API so the two cannot drift; use cases
+    # are behaviour and stay out of reach.
+    INFRASTRUCTURE: ("domain", "application.ports", "application.presenters", "infrastructure"),
     PRESENTATION: ("domain", "application", "presentation", "bootstrap"),
     BOOTSTRAP: ("domain", "application", "infrastructure", "bootstrap"),
     ROOT: (),
@@ -382,3 +384,20 @@ def test_architecture_checker_reads_a_bare_package_import() -> None:
     imports = build_module_imports(ast.parse("from techscope import bootstrap\n"))
 
     assert imports.internal_paths == ("bootstrap",)
+
+
+def test_architecture_walker_still_reports_infrastructure_reaching_into_a_use_case(
+    tmp_path: Path,
+) -> None:
+    """Widening the rule for presenters must not have opened it for behaviour."""
+    package_root = write_synthetic_package(
+        tmp_path,
+        {
+            "__init__.py": "",
+            "infrastructure/writers/w.py": "from techscope.application.use_cases.scan import x\n",
+        },
+    )
+
+    assert build_import_violations(package_root) == [
+        "w.py (infrastructure) imports techscope.application.use_cases.scan"
+    ]

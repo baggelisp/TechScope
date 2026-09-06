@@ -18,9 +18,13 @@ presentation ──► application ──► domain ◄── infrastructure
 |---|---|---|
 | `domain/` | stdlib except `argparse`/`json`, `domain` | `application`, `infrastructure`, `presentation`, `httpx`, `dns`, `argparse`, `json` file I/O |
 | `application/` | stdlib except `argparse`/`json`, `domain`, `application` | `infrastructure`, `presentation`, `httpx`, `dns` |
-| `infrastructure/` | stdlib except `argparse`, `domain`, `application.ports`, `infrastructure`, `httpx`, `dns` | `application.use_cases`, `presentation` |
+| `infrastructure/` | stdlib except `argparse`, `domain`, `application.ports`, `application.presenters`, `infrastructure`, `httpx`, `dns` | `application.use_cases`, `presentation` |
 | `presentation/` | stdlib, `domain`, `application`, `presentation`, `bootstrap`, `fastapi` (api only) | `infrastructure`, `httpx`, `dns` |
 | `bootstrap.py` | everything except `presentation` and `argparse` | `presentation` |
+
+An adapter may read `application.presenters` because those are pure shaping functions with no
+behaviour: the JSON writer and the HTTP API must produce the same shapes, and duplicating them
+is how they drift. What an adapter may never reach into is `application.use_cases`.
 
 The rule in one sentence: **the arrow always points inward**; the domain knows nothing, the
 application knows the domain and its own ports, adapters implement ports, and only the
@@ -118,7 +122,8 @@ class FingerprintRepository(Protocol):
     def load(self) -> tuple[Fingerprint, ...]: ...    # raises FingerprintLoadError, nothing else
 
 class ScanReportWriter(Protocol):
-    def write(self, report: ScanReport, destination: Path) -> None: ...
+    def write_summary(self, report: ScanReport, destination: Path) -> None: ...
+    def write_details(self, report: ScanReport, destination: Path) -> None: ...
 ```
 
 Ports are small `typing.Protocol`s, not ABCs. An adapter is any class with the right shape; tests

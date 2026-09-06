@@ -139,10 +139,14 @@ keeps the JavaScript-global scan of feature 7 out of JSON blobs.
 ## 6. Output
 
 - `output.json` — exactly the assignment shape: `{ "<domain>": ["Tech", …] }`.
-- `--details <path>` (feature 8) — a second file for humans and the web app:
-  per domain `detections[{name, confidence, evidence[]}]`, `failures[{collector, reason}]`,
-  `duration_seconds`, plus a run `summary`. Never replaces `output.json`. Both shapes are
-  produced by `application/presenters/scan_report_presenter.py`, which the API reuses verbatim.
+- `--details <path>` — a second file for humans and the web app: per domain `technologies[]`,
+  `detections[{name, confidence, evidence[{channel, key, pattern, matched}]}]`,
+  `problems[{collector, reason, detail}]` and `duration_seconds`, plus a run `summary`
+  (`domains`, `detections`, `domains_with_problems`, `duration_seconds`). A domain cut short by
+  the deadline reports `duration_seconds: null` rather than a fabricated zero. Never replaces
+  `output.json`, and both shapes come from `application/presenters/scan_report_presenter.py`,
+  which the API reuses verbatim. It exists because `output.json` cannot tell a domain that runs
+  nothing detectable from one that refused to answer: both are an empty list.
 
 ## 7. Packaging and run modes
 
