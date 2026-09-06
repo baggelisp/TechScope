@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+    /* A dark ground, one lime accent for the action, and two quiet hues beside it. */
+    --color-canvas: #0f0f10;
+    --color-surface: #191a1c;
+    --color-surface-raised: #232427;
+    --color-line: #2c2e32;
+    --color-line-strong: #3a3d42;
+
+    --color-ink: #f4f5f6;
+    --color-ink-muted: #9a9da3;
+    --color-ink-faint: #6b6e75;
+
+    --color-accent: #d9f24e;
+    --color-accent-soft: #b9cf3c;
+    --color-lilac: #c7b4f7;
+    --color-sky: #a9d9f2;
+    --color-mint: #9fe8c6;
+    --color-peach: #f7c9a0;
+
+    --font-sans:
+        ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+        sans-serif;
+    --font-mono:
+        ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+:root {
+    color-scheme: dark;
+}
+
+@layer base {
+    /* Tailwind v4's reset drops the pointer a button used to get from the browser. A control
+       that does nothing on hover reads as decoration, so it is put back here rather than as a
+       class every button has to remember. */
+    button:not(:disabled),
+    [role='button']:not(:disabled),
+    label[for] {
+        cursor: pointer;
+    }
+}
+
+::selection {
+    background-color: var(--color-accent);
+    color: var(--color-canvas);
+}
+
+/* The evidence popovers open in the top layer; this is the only styling they need beyond
+   their own classes. */
+[popover]::backdrop {
+    background-color: rgb(0 0 0 / 0.65);
+}

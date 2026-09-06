@@ -78,16 +78,18 @@ never a `!`.
 
 ## The API boundary — parse, don't trust
 
-- The Next.js route handler (`app/api/scans/route.ts`) is the **only** place that talks to
-  `API_URL`. It parses the FastAPI response with a zod schema before returning it; the browser
-  code never sees an unparsed body. Zod is the one runtime-validation dependency; no others.
+- A **server action** in `web/src/app/actions/scans/` is the **only** place that talks to
+  `API_URL`. It runs on the server, so the browser never learns the API's address and there is
+  no CORS to arrange. It parses the response with a zod schema before returning it; no component
+  ever sees an unparsed body. Zod is the one runtime-validation dependency; no others.
 - Schemas live in `web/src/api/schemas.ts`, one per endpoint response, named
   `<thing>Schema`; the inferred types are exported beside them (`ScanReport`, `DomainResult`,
-  `Detection`, `Evidence`, `CollectionFailure`).
-- A parse failure is an `error` state with a typed `ScanError`, never a thrown `Error` that
-  reaches a component. Error codes mirror the API's `error.code` values.
-- Requests are typed the same way: the body of `POST /api/scans` is validated with
-  `scanRequestSchema` before the proxy call.
+  `Detection`, `Evidence`, `Problem`).
+- An action never throws at its caller. It returns
+  `ActionResponse<T> = { success: true; data: T } | { success: false; error: { message, code } }`
+  from `web/src/lib/utils/errors.ts`, and the page branches on it with an early return. Error
+  codes mirror the API's `error.code` values.
+- A parse failure is one of those failures, never an exception that reaches a component.
 
 ## Functions and absence (same spirit as `python-style.md`)
 
@@ -104,3 +106,29 @@ never a `!`.
 `@typescript-eslint/consistent-type-definitions: type`, `no-restricted-syntax` banning `enum`)
 and `npx tsc --noEmit` must be clean. They are not part of `make check`; they run in the
 feature's own verification step and in the `reviewer` pass for `web/` changes.
+
+## Pages
+
+The app has two routed pages and they follow the skill's page-folder rules: one routed page per
+folder, folders one level deep, page-local pieces in `_components/` and `_hooks/`.
+
+- `/` is the form. It holds no result and knows nothing about scanning; submitting navigates.
+- `/multi-scan-results` runs the scan for a list in its `page.tsx` as an async server component
+  and renders `<PageError>` when the action fails. `loading.tsx` is the pending state.
+- `/domain/<domain>` does the same for one domain, in full detail. One domain submitted on the
+  form lands here, and so does a shared `/multi-scan-results` link carrying only one.
+
+Putting the scan on the page that shows it is what removes the phase machine from the client:
+with the result addressed by its URL, there is no `idle | scanning | success | error` union to
+keep in step with anything, and a result can be reloaded, bookmarked and shared.
+
+Everything under those pages is a server component. The evidence panels are native popovers
+opened by the browser from an id, so a page full of them ships no JavaScript for them; the only
+client components are the form, which owns what has been typed, and the download button, which
+builds a file the browser then saves.
+
+## Single language
+
+The app ships in one language and carries no translation library. The rule the skill is really
+making — no user-facing string written into markup — is kept by putting every one of them in
+`web/src/constants/copy.constant.ts`.

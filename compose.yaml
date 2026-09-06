@@ -1,4 +1,5 @@
-# The `web` service arrives with backlog item 12.
+# `docker compose up` brings up the API and the web app together; the one-shot CLI scan sits
+# behind the `cli` profile so it does not start with them.
 services:
   scan:
     profiles: ["cli"]
@@ -20,7 +21,6 @@ services:
     command: ["scan", "docs/domains.txt", "-o", "output.json", "--log-level", "INFO"]
 
   api:
-    profiles: ["api"]
     build:
       context: .
       target: api
@@ -28,6 +28,23 @@ services:
     ports:
       - "8000:8000"
     # It serves from memory and writes nothing; the scan itself is the only outbound traffic.
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  web:
+    build:
+      context: ./web
+      target: web
+    image: techscope-web:local
+    ports:
+      - "3000:3000"
+    environment:
+      # The browser never learns this address: only the server action reads it.
+      API_URL: http://api:8000
+    depends_on:
+      - api
+    # It renders from memory and writes nothing.
     read_only: true
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
