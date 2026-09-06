@@ -86,7 +86,7 @@ It is an optional extra. The graded CLI install does not carry a web framework.
 ```bash
 uv run --extra api uvicorn techscope.presentation.api.app:create_app --factory --port 8000
 # or
-docker compose --profile api up --build api
+docker compose up --build api
 ```
 
 | Endpoint | Answers |
@@ -129,6 +129,63 @@ CLI's 55 seconds: that number exists to fit the assignment's 60-second budget fo
 and this driver accepts fifty, so it is derived from the cap instead — five waves of ten domains
 at the per-domain timeout, plus margin. The concurrency limit belongs to the service rather than
 to one call, so several requests at once share it rather than multiplying it.
+
+## Web app
+
+A browser front end for the same scan, talking only to the API above.
+
+```bash
+docker compose up --build        # api on :8000, web on :3000
+```
+
+Paste or drop a list of domains, and the results open on their own page.
+
+![The form](docs/images/web-form.png)
+
+![The results page](docs/images/web-results.png)
+
+Every tick opens the evidence behind it: the channel, the key, the pattern the fingerprint asked
+for and the text the page actually had. A tick is dimmed below full confidence, so the column
+says how sure the scanner is without a number in every cell.
+
+![The evidence behind one detection](docs/images/web-evidence.png)
+
+A domain name in the first column opens that domain on its own, scanned by itself: everything it
+runs at a glance, then each technology explained in turn with all of its evidence laid out rather
+than tucked behind a control. Submitting a single domain on the form lands here directly.
+
+![One domain in full](docs/images/web-domain.png)
+
+Every page is laid out for a phone first: the matrix scrolls sideways under a pinned domain
+column, and the actions stack full width.
+
+![The form and the matrix on a phone](docs/images/web-mobile-results.png)
+
+**The scan runs on the page that shows it.** Submitting the form navigates to the page that will
+run it, and that page runs it in its own server component while the browser shows a pending
+state. The form therefore holds no result and knows nothing about scanning, and there is no
+`idle | scanning | success | error` state machine in the browser to keep in step with anything.
+A result is addressed by its URL, so it survives a reload and can be shared.
+
+**One domain has no matrix worth drawing.** A single row of a single column says less than the
+page that lays that domain out in full, so one domain goes straight to `/domain/<domain>` and a
+list goes to `/multi-scan-results`. A shared link to the matrix with one domain in it is sent to
+the same place, so the two routes cannot disagree about where one domain belongs.
+
+**Almost nothing runs in the browser.** The results page, the evidence and the single-domain page
+are all server components. The evidence panels are native popovers, opened by the browser from an
+id, so a page full of them ships no JavaScript for them at all. The one client component on the
+results page is the download button, because building a file and handing it to the browser is the
+only thing there that cannot happen on the server.
+
+**One place talks to the API.** A server action reads `API_URL` and parses what comes back with
+a zod schema before anything else sees it, so the browser never learns the API's address, there
+is no CORS to arrange, and a response in an unexpected shape is a typed failure rather than a
+crash halfway down a component tree. The types the app uses are inferred from those schemas
+rather than written a second time.
+
+The download button rebuilds the assignment's `output.json` shape in the browser from the same
+report the page is showing.
 
 ## Architecture decisions
 
@@ -375,7 +432,8 @@ package's registry.
 **A new driver** is a module under `presentation/` that calls `bootstrap.build_scan_service` and
 shapes the report with the presenters. The HTTP API is the worked example: it added no use case,
 no adapter and no matching rule, and it shares the normaliser and the presenter with the CLI
-precisely so the two answers cannot disagree.
+precisely so the two answers cannot disagree. The web app is one layer further out again: it
+speaks only to that API and contains no scanning logic at all.
 
 ## Development
 
@@ -385,10 +443,22 @@ make fmt      # format and apply safe lint fixes
 make e2e      # timed live scan of the 20 assignment domains
 ```
 
-490 tests, none of which touch the network: HTTP goes through `respx`, DNS through injected
-fakes, and an autouse fixture makes a real nameserver unreachable from any unit test. Every
-shipped fingerprint has a positive case and a near-miss that must not match, and a test fails the
-build if any pattern has no case exercising it.
+589 tests, none of which touch the network: HTTP goes through `respx`, DNS through injected
+fakes, and an autouse fixture makes both a real nameserver and a real `getaddrinfo` unreachable
+from any unit test. Every shipped fingerprint has a positive case and a near-miss that must not
+match, and a test fails the build if any pattern has no case exercising it. `make check` runs the
+type check and the tests with the `api` extra installed, because a gate that cannot import the
+HTTP driver silently checks nothing about it.
+
+The web app has its own gates, which `make check` does not run:
+
+```bash
+cd web
+npx tsc --noEmit   # strict, with noUncheckedIndexedAccess
+npx eslint
+npm test           # the utility tests
+npm run build
+```
 
 ## Assignment checklist
 

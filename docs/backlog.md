@@ -206,7 +206,7 @@ outbound requests from our host, and every hole must be closed before that, not 
 **E2E:** live; `output.json` must be byte-identical to feature 9's submitted run — hardening
 that changes detections is a bug — and the runtime no worse than +10%.
 
-## [~] 11. HTTP API driver (only after 10 is merged) — PR #11
+## [x] 11. HTTP API driver (only after 10 is merged) — PR #11
 **Goal:** the same scan, runnable over HTTP for the web app — a second driver, zero core changes.
 **Acceptance:**
 - `pyproject.toml` optional extra `api = ["fastapi", "uvicorn[standard]"]`; the core install is
@@ -228,22 +228,33 @@ that changes detections is a bug — and the runtime no worse than +10%.
 **E2E:** `docker compose up api` + `curl -X POST /scans` with the 20 domains; response matches
 the CLI `--details` run for the same domains (modulo timing); under 60 s.
 
-## [ ] 12. Web app — Next.js (only after 11 is merged)
+## [~] 12. Web app — Next.js (only after 11 is merged) — PR #12
 **Goal:** run a scan from the browser and see the evidence behind every detection.
 **Acceptance:**
-- `web/` Next.js (App Router, TypeScript, ESLint, no static export). Pages: a scan form
-  (textarea + `.txt` file drop, concurrency/timeout advanced options) and a results view.
-- Route handler `POST /api/scans` proxies to `API_URL` (server-side, no CORS in the browser).
-- Results: domain × technology matrix; per-cell popover with evidence (channel, key, pattern,
-  matched text, confidence); blocked/failed domains with reason; summary (domains, detections,
-  blocked, seconds); "Download output.json" producing the assignment shape client-side.
+- `web/` Next.js (App Router, TypeScript, ESLint, no static export). Two routed pages: a scan
+  form (textarea + `.txt` file drop) at `/`, and the matrix at `/multi-scan-results`, which runs
+  the scan in its own server component so the form holds no result state. One domain is sent to
+  its own page instead, since a one-row matrix says less than the detail view.
+- A **server action** is the only code that talks to `API_URL` (server-side, no CORS in the
+  browser). *Amended from "route handler": the same job, in the form this project prefers.*
+- *Dropped: concurrency/timeout advanced options.* Feature 11 made those bounds a property of
+  the shared, long-lived service, so a request that set them would set them for every other
+  caller. Shipping controls that do nothing would be worse than not shipping them.
+- Results: domain × technology matrix, a tick per detection dimmed below full confidence;
+  per-cell popover with evidence (channel, key, pattern, matched text, confidence);
+  blocked/failed domains with reason; summary (domains, detections, blocked, seconds);
+  "Download output.json" producing the assignment shape client-side.
 - Loading and error states (API down, deadline hit, validation errors from 422).
 - `web/Dockerfile` (Node 22 multi-stage) and `compose.yaml` service `web` with
   `depends_on: api`; `docker compose up` brings up api + web on :3000.
 - Follows the `vspathonis-code-style` skill and `.claude/rules/typescript-style.md`: strict
-  tsconfig with `noUncheckedIndexedAccess`, zod parsing in the route handler (the only code
-  that calls `API_URL`), types inferred from the schemas, discriminated-union `ScanState`,
-  `as const` objects mirroring `ChannelEnum` values, no `any`/`as`/`!`/`enum`.
+  tsconfig with `noUncheckedIndexedAccess`, zod parsing in the server action (the only code
+  that calls `API_URL`), types inferred from the schemas, `as const` objects mirroring
+  `ChannelEnum` values, no `any`/`as`/`!`/`enum`. *A discriminated-union `ScanState` is no
+  longer needed: with the scan on its own route there is no client-side phase to model.*
+- A third page, `/domain/<domain>`, scans one domain and shows every detection with all of its
+  evidence open, plus the URL the page was read from and anything that went wrong. It is where
+  submitting a single domain lands, and where a domain name in the matrix links to.
 - `npm run lint` and `npx tsc --noEmit` clean. Not part of `make check`. README "Web app"
   section with a screenshot.
 **E2E:** `docker compose up`, paste the 20 domains, scan completes under 60 s, matrix matches
