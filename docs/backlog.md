@@ -169,7 +169,7 @@ submitted run. No other gate covers this: `make check` runs in a warm working tr
 has the brief in it.
 **E2E:** live; this run is the one submitted.
 
-## [~] 10. Security review and hardening
+## [~] 10. Security review and hardening — PR #10
 **Goal:** a documented security pass over the shipped CLI, and the guards that make it safe to
 put a second driver in front of the same core — feature 11 turns a third party's input into
 outbound requests from our host, and every hole must be closed before that, not after.
