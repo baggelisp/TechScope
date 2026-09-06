@@ -206,7 +206,7 @@ outbound requests from our host, and every hole must be closed before that, not 
 **E2E:** live; `output.json` must be byte-identical to feature 9's submitted run — hardening
 that changes detections is a bug — and the runtime no worse than +10%.
 
-## [~] 11. HTTP API driver (only after 10 is merged)
+## [~] 11. HTTP API driver (only after 10 is merged) — PR #11
 **Goal:** the same scan, runnable over HTTP for the web app — a second driver, zero core changes.
 **Acceptance:**
 - `pyproject.toml` optional extra `api = ["fastapi", "uvicorn[standard]"]`; the core install is
