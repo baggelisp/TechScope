@@ -151,7 +151,7 @@ shipped 24 patterns, but ~530 ms against the full 13,373-pattern upstream databa
   so it is a flag rather than a new default. Feature 9's submitted run states which was used.
 **E2E:** live, twice; target < 30 s. Docker run (`make docker-scan`) must match the local run.
 
-## [~] 9. Final submission run, output.json, README architecture
+## [~] 9. Final submission run, output.json, README architecture — PR #9
 **Goal:** the deliverable, polished.
 **Acceptance:** fresh live run committed as `output.json`; README sections: install (local +
 Docker), run, architecture decisions (hexagonal layers and why, `Signal` abstraction,
@@ -161,16 +161,12 @@ README ticked against `assigment/assigment.md`; `make check` green; the Docker r
 same code path and is compared against the local one, with any difference explained from the
 details file rather than assumed away — a network-dependent scan cannot be byte-identical across
 environments with different network paths; repo public (the owner's call, not the tool's).
-**Submission gates (this feature only — the ordinary `reviewer` sees diffs, and nobody has yet
-looked at the deliverable as a whole):**
-- `make fresh-check` green: `scripts/fresh_clone_check.sh` clones the *committed* state into a
-  temp dir and builds it there — required files present, `assigment/` and other ignored paths
-  absent, `uv sync --frozen` resolves, `make check`, both entry points run, `docker build`.
-  Add `--with-e2e` for the submitted run. This is what a stranger who clones the repo gets, and
-  no other gate covers it: `make check` runs in a warm working tree that still has the brief.
-- `submission-reviewer` agent returns **READY**, or NOT READY with every blocking gap fixed and
-  re-run. It grades `assigment/assigment.md` requirement by requirement against the committed
-  state and proves the ≥ 4 channels fire from `output.details.json`, not from the code.
+**Submission gate (this feature only):** `make fresh-check` green —
+`scripts/fresh_clone_check.sh` clones the *committed* state into a temp dir and builds it there:
+required files present, `assigment/` and other ignored paths absent, `uv sync --frozen`
+resolves, `make check`, both entry points run, `docker build`. Add `--with-e2e` for the
+submitted run. No other gate covers this: `make check` runs in a warm working tree that still
+has the brief in it.
 **E2E:** live; this run is the one submitted.
 
 ## [ ] 10. Security review and hardening
