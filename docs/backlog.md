@@ -127,7 +127,7 @@ a name mentioned only inside a string does not count. Fixtures with GA4 `gtag(`,
 Segment snippets.
 **E2E:** live; GA4 via `gtag(` in `SCRIPT_INLINE` expected on several domains.
 
-## [~] 8. Concurrent scan, budget, structured output, details file
+## [~] 8. Concurrent scan, budget, structured output, details file — PR #8
 **Goal:** the production run: bounded concurrency, hard budget, deterministic JSON, clean logs.
 **Acceptance:** bounded concurrency and `--concurrency` moved forward into feature 6, because
 adding DNS took the run from 16 s to 61 s and breached the assignment's 60 s budget; bootstrap
