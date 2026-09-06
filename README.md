@@ -27,7 +27,7 @@ technology list.
 | Matching signals against fingerprints | done |
 | HTTP fetch, response channels | backlog 4–5 |
 | DNS channel, bounded concurrency | done |
-| JavaScript-global channel | backlog 7 |
+| JavaScript-global channel | done |
 | Run deadline and structured output | backlog 8 |
 
 ## Install
@@ -139,11 +139,37 @@ scanning twenty domains ten at a time means thirty simultaneous queries, and unb
 resolver returned 661 to 676 records and a different number on every run. Bounded, it returns
 749 every time, and faster. Three consecutive scans now produce byte-identical output.
 
+DNS is the one part of a scan that does not reproduce exactly. Repeated runs on this machine
+returned between 713 and 749 records depending on how the local resolver was behaving, while a
+public resolver returned 749 every time and fifteen times faster. The scanner does not choose one
+for you; a run's DNS detections are as good as the resolver it was given.
+
 A `www.` prefix is stripped, and nothing else is: reducing `blog.example.com` to `example.com`
 needs a public suffix list, and guessing wrong attributes another organisation's DNS to this
 one. `myblog.wordpress.com` would become `wordpress.com`, whose mail records belong to
 Automattic. A domain below the registrable level therefore yields fewer DNS signals, which is a
 miss rather than a wrong answer.
+
+### JavaScript globals, without running anything
+
+The sixth channel reads the names a page's inline scripts define — `window.Intercom = …`,
+`window['analytics']`, a top-level `var` or `function` — by scanning script text. Nothing is
+executed. Each script is first mapped to learn which stretches are string or comment content and
+which are at the top level, and names are then read only out of real top-level code. That map is
+what keeps a documentation snippet inside a string from being mistaken for the global it
+describes, and it is why a `var` inside a function is correctly read as a local.
+
+The fingerprint set the assignment supplies contains no `js` patterns, so this channel adds no
+detections to `output.json`. It is not idle capability: pointed at the full upstream database
+with `--fingerprints`, it finds six technologies on the assignment's own domains that the other
+five channels miss, among them Optimizely and Marker on typeform.com, each from a global its
+inline script really defines.
+
+Two things it deliberately does not do. A bare `X = 1` is not read as a global, because without
+a parser it cannot be told from a default parameter or a loop variable, and the short names it
+would add collide with upstream keys. And a global's *value* is never known: an upstream `js`
+pattern that constrains the value, usually to extract a version, cannot match, because knowing
+the value would mean running the script — which is the one thing the assignment forbids.
 
 ### A limitation worth stating
 

@@ -56,8 +56,7 @@
   ],
   "segment.com": [
     "Google Analytics 4",
-    "Google Workspace",
-    "HubSpot"
+    "Google Workspace"
   ],
   "hotjar.com": [
     "Google Workspace",
@@ -65,8 +64,7 @@
   ],
   "drift.com": [
     "Cloudflare",
-    "Google Workspace",
-    "SendGrid"
+    "Google Workspace"
   ],
   "zendesk.com": [
     "Cloudflare",

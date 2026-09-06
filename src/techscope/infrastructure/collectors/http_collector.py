@@ -4,6 +4,7 @@ A soft-blocked response still goes through the extractors: its headers are real 
 Cloudflare challenge proves Cloudflare.
 """
 
+import asyncio
 import logging
 from itertools import chain
 
@@ -37,7 +38,10 @@ class HttpSignalCollector:
 
             return CollectionResult(signals=(), failure=_build_failure(outcome))
 
-        signals = _extract_signals(outcome)
+        # Parsing and scanning a large page is CPU-bound. On the event loop it blocks every
+        # other domain, and a blocked loop pushes concurrent DNS attempts past their timeout:
+        # measured, one full scan in four lost real records that way while DNS alone never did.
+        signals = await asyncio.to_thread(_extract_signals, outcome)
         logger.debug("%s produced %d signals", domain, len(signals))
 
         return CollectionResult(

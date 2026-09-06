@@ -64,6 +64,7 @@ async def test_collector_emits_signals_from_every_response_channel() -> None:
         ChannelEnum.COOKIE,
         ChannelEnum.SCRIPT_SRC,
         ChannelEnum.SCRIPT_INLINE,
+        ChannelEnum.JS_GLOBAL,
         ChannelEnum.HTML,
     }
 

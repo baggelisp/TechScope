@@ -103,7 +103,7 @@ HubSpot, Cloudflare-block pages.
 **E2E:** live; first real detections expected (Cloudflare, Shopify, HubSpot, Stripe…). Name the
 signal for each.
 
-## [~] 6. DNS collector — PR #6
+## [x] 6. DNS collector — PR #6
 **Goal:** MX / TXT / CNAME on the apex, concurrent with the fetch.
 **Acceptance:** `domain/domain_name.py` gains `decide_apex_domain` (moved from feature 1, where
 it had no caller; the public-suffix trade-off is decided here and documented in the README).
@@ -115,11 +115,14 @@ collectors concurrently. Matched via `dns` patterns (Google Workspace, Microsoft
 HubSpot verification, Salesforce). Fake resolver in tests.
 **E2E:** live; expect mail-provider detections on most domains.
 
-## [ ] 7. JS globals extractor (static)
+## [~] 7. JS globals extractor (static)
 **Goal:** `window.*` names from inline scripts without execution.
 **Acceptance:** `infrastructure/extractors/jsglobals.py` scans `SCRIPT_INLINE` bodies for
-`window.X =`, `window['X']`, top-level `var/let/const X =`, and global-shaped `X = `; ignores
-string literals and comments where cheaply possible; emits `JS_GLOBAL` signals. Accuracy guard:
+`window.X =`, `window['X'] =`, and top-level `var/let/const X =` or `function X(`; ignores
+string literals, comments and regex literals; emits `JS_GLOBAL` signals. A bare global-shaped
+`X = ` is deliberately **not** read: without a parser it cannot be told from a default
+parameter, a `for` initialiser or a destructuring target, and the short names it would add
+collide with upstream `js` keys under a fullmatch index — a direct false-positive path. Accuracy guard:
 a name mentioned only inside a string does not count. Fixtures with GA4 `gtag(`, Intercom,
 Segment snippets.
 **E2E:** live; GA4 via `gtag(` in `SCRIPT_INLINE` expected on several domains.
@@ -135,10 +138,17 @@ failed domain with its reason, and a summary line (domains, detections, blocked,
 (`present_summary`, `present_details`) turns a `ScanReport` into JSON-ready records;
 `JsonReportWriter` uses it for both `output.json` and `--details <path>` (spec §6). Tests with
 fake slow collectors prove the budget and isolation.
-Parsing and matching are both synchronous CPU inside the event loop. The tolerant HTML parse
-measures ~370 ms on a body at the 2 MB cap, and matching is ~3 ms per domain with the shipped 24
-patterns but ~530 ms against the full 13,373-pattern upstream database. Under bounded concurrency
-that CPU serialises, so if either grows the work belongs on a thread.
+Response parsing and extraction moved onto a worker thread in feature 7, after measurement
+showed that blocking the loop pushed concurrent DNS attempts past their timeout and cost real
+records in one full scan out of four. Matching is still on the loop: ~3 ms per domain with the
+shipped 24 patterns, but ~530 ms against the full 13,373-pattern upstream database, so pointing
+`--fingerprints` at that in a timed run would need the same treatment.
+- `--nameserver` (repeatable), defaulting to the system resolver. Measured on this machine over
+  three full runs each: the system resolver returned 713-749 DNS records and a different number
+  per run, in 5-6 s; `1.1.1.1` returned 749 every time in 0.2-0.4 s. DNS-derived detections are
+  the only part of `output.json` that does not reproduce, and a scanner reading public records
+  has no need of a local resolver's private views — but the choice belongs to whoever runs it,
+  so it is a flag rather than a new default. Feature 9's submitted run states which was used.
 **E2E:** live, twice; target < 30 s. Docker run (`make docker-scan`) must match the local run.
 
 ## [ ] 9. Final submission run, output.json, README architecture
