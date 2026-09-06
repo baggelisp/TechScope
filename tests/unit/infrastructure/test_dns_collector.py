@@ -2,10 +2,11 @@
 
 import asyncio
 
-from techscope.domain.enums import ChannelEnum
+from techscope.domain.enums import ChannelEnum, FailureReasonEnum
 from techscope.domain.matcher import build_fingerprint_index, match_signals
 from techscope.domain.models import Signal
 from techscope.infrastructure.collectors.dns_collector import DnsSignalCollector
+from techscope.infrastructure.dns.resolver import DnsAnswer
 from techscope.infrastructure.repositories.json_fingerprint_repository import (
     DEFAULT_TECHNOLOGIES_PATH,
     JsonFingerprintRepository,
@@ -15,20 +16,29 @@ DOMAIN = "example.com"
 
 
 class FakeResolver:
-    """Answers from a table of (name, record type). Anything unlisted has no records."""
+    """Answers from a table of (name, record type). Anything unlisted has no records.
+
+    A record type listed in ``failures`` did not complete, the way a timed-out lookup does.
+    """
 
     def __init__(
-        self, records: dict[tuple[str, str], tuple[str, ...]], pause_seconds: float = 0.0
+        self,
+        records: dict[tuple[str, str], tuple[str, ...]],
+        pause_seconds: float = 0.0,
+        failures: dict[tuple[str, str], FailureReasonEnum] | None = None,
     ) -> None:
         self.queries: list[tuple[str, str]] = []
         self._records = records
         self._pause_seconds = pause_seconds
+        self._failures = failures or {}
 
-    async def resolve(self, name: str, record_type: str) -> tuple[str, ...]:
+    async def resolve(self, name: str, record_type: str) -> DnsAnswer:
         self.queries.append((name, record_type))
         await asyncio.sleep(self._pause_seconds)
+        records = self._records.get((name, record_type), ())
+        failure = self._failures.get((name, record_type))
 
-        return self._records.get((name, record_type), ())
+        return DnsAnswer(records=records, failure=failure)
 
 
 async def collect(resolver: FakeResolver, domain: str = DOMAIN) -> tuple[Signal, ...]:
@@ -193,11 +203,11 @@ class ExplodingResolver:
         self._working_type = working_type
         self._records = records
 
-    async def resolve(self, _name: str, record_type: str) -> tuple[str, ...]:
+    async def resolve(self, _name: str, record_type: str) -> DnsAnswer:
         if record_type != self._working_type:
             raise RuntimeError("resolver exploded")
 
-        return self._records
+        return DnsAnswer(records=self._records)
 
 
 async def test_dns_collector_keeps_the_record_types_that_answered() -> None:
@@ -207,3 +217,71 @@ async def test_dns_collector_keeps_the_record_types_that_answered() -> None:
     result = await DnsSignalCollector(resolver=resolver).collect(DOMAIN)
 
     assert detect(result.signals) == ["Google Workspace"]
+
+
+async def test_dns_collector_reports_a_timed_out_record_type_as_a_failure() -> None:
+    """No TXT answer within the budget is not the same as no TXT record, and must not read so."""
+    resolver = FakeResolver({}, failures={(DOMAIN, "TXT"): FailureReasonEnum.TIMEOUT})
+
+    result = await DnsSignalCollector(resolver=resolver).collect(DOMAIN)
+
+    assert result.failure is not None
+    assert result.failure.collector == "dns"
+    assert result.failure.reason is FailureReasonEnum.TIMEOUT
+    assert "TXT" in result.failure.detail
+
+
+async def test_dns_collector_keeps_the_records_that_answered_beside_a_failure() -> None:
+    resolver = FakeResolver(
+        {(DOMAIN, "MX"): ("10 aspmx.l.google.com.",)},
+        failures={(DOMAIN, "TXT"): FailureReasonEnum.TIMEOUT},
+    )
+
+    result = await DnsSignalCollector(resolver=resolver).collect(DOMAIN)
+
+    assert detect(result.signals) == ["Google Workspace"]
+    assert result.failure is not None
+
+
+async def test_dns_collector_names_every_record_type_that_failed() -> None:
+    resolver = FakeResolver(
+        {},
+        failures={
+            (DOMAIN, "MX"): FailureReasonEnum.TIMEOUT,
+            (DOMAIN, "TXT"): FailureReasonEnum.TIMEOUT,
+        },
+    )
+
+    result = await DnsSignalCollector(resolver=resolver).collect(DOMAIN)
+
+    assert result.failure is not None
+    assert "MX" in result.failure.detail
+    assert "TXT" in result.failure.detail
+    assert "CNAME" not in result.failure.detail
+
+
+async def test_dns_collector_reports_a_timeout_ahead_of_a_resolver_breakdown() -> None:
+    """One failure per collector: the time-bound one is the actionable one."""
+    resolver = FakeResolver(
+        {},
+        failures={
+            (DOMAIN, "MX"): FailureReasonEnum.COLLECTOR_ERROR,
+            (DOMAIN, "TXT"): FailureReasonEnum.TIMEOUT,
+        },
+    )
+
+    result = await DnsSignalCollector(resolver=resolver).collect(DOMAIN)
+
+    assert result.failure is not None
+    assert result.failure.reason is FailureReasonEnum.TIMEOUT
+
+
+async def test_dns_collector_describes_a_failure_reason_it_has_no_words_for() -> None:
+    """The port admits every reason; one the registry does not name must still not raise."""
+    resolver = FakeResolver({}, failures={(DOMAIN, "TXT"): FailureReasonEnum.DNS_UNRESOLVED})
+
+    result = await DnsSignalCollector(resolver=resolver).collect(DOMAIN)
+
+    assert result.failure is not None
+    assert result.failure.reason is FailureReasonEnum.DNS_UNRESOLVED
+    assert "TXT" in result.failure.detail

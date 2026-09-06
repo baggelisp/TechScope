@@ -10,7 +10,7 @@ import re
 
 from techscope.domain.enums import KEYED_CHANNELS, ChannelEnum
 from techscope.domain.errors import FingerprintLoadError
-from techscope.domain.models import Pattern
+from techscope.domain.models import Implication, Pattern
 from techscope.infrastructure.repositories.pattern_safety import decide_pattern_danger_or_none
 
 MODIFIER_SEPARATOR = "\\;"
@@ -45,11 +45,27 @@ def build_pattern(
     )
 
 
-def decide_implied_technology(raw_implies: str) -> str:
-    """An ``implies`` entry may carry the same modifiers; only the name is a technology."""
-    parts = raw_implies.split(MODIFIER_SEPARATOR)
+def build_implication(technology: str, raw_implies: str) -> Implication:
+    """An ``implies`` entry is a name with the same modifiers a pattern may carry.
 
-    return parts[0].strip()
+    The confidence is the implication's own bound. Dropping it reported ``PHP\\;confidence:50``
+    as PHP at full confidence across the whole upstream database.
+    """
+    parts = raw_implies.split(MODIFIER_SEPARATOR)
+    implied_technology = parts[0].strip()
+    modifier_parts = parts[1:]
+    _check_implication_is_named_or_raise(technology, implied_technology)
+
+    return Implication(
+        technology=implied_technology,
+        confidence=_decide_confidence(technology, modifier_parts),
+    )
+
+
+def _check_implication_is_named_or_raise(technology: str, implied_technology: str) -> None:
+    """An implication becomes a detection, and a detection with no name is not one."""
+    if len(implied_technology) == 0:
+        raise FingerprintLoadError(technology, "an implies entry names no technology")
 
 
 def _decide_key_regex_or_none(technology: str, raw_key: str | None) -> re.Pattern[str] | None:

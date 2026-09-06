@@ -10,7 +10,11 @@ from techscope.domain.matcher import (
     match_signals,
 )
 from techscope.domain.models import Detection, Fingerprint, Signal
-from tests.support.builders import build_test_fingerprint, build_test_pattern
+from tests.support.builders import (
+    build_test_fingerprint,
+    build_test_implication,
+    build_test_pattern,
+)
 
 
 def match(signals: tuple[Signal, ...], *fingerprints: Fingerprint) -> tuple[Detection, ...]:
@@ -268,7 +272,9 @@ def test_match_signals_evidence_truncates_a_very_long_match() -> None:
 
 def test_match_signals_adds_an_implied_technology() -> None:
     shopify = build_test_fingerprint(
-        "Shopify", (build_test_pattern(ChannelEnum.HTML, r"cdn\.shopify\.com"),), implies=("Ruby",)
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, r"cdn\.shopify\.com"),),
+        implies=(build_test_implication("Ruby"),),
     )
     signal = Signal(channel=ChannelEnum.HTML, value="cdn.shopify.com/s/files")
 
@@ -279,7 +285,7 @@ def test_match_signals_gives_an_implied_technology_the_implier_confidence() -> N
     shopify = build_test_fingerprint(
         "Shopify",
         (build_test_pattern(ChannelEnum.HTML, r"cdn\.shopify\.com", confidence=80),),
-        implies=("Ruby",),
+        implies=(build_test_implication("Ruby"),),
     )
     signal = Signal(channel=ChannelEnum.HTML, value="cdn.shopify.com/s/files")
 
@@ -290,7 +296,9 @@ def test_match_signals_gives_an_implied_technology_the_implier_confidence() -> N
 
 def test_match_signals_carries_no_evidence_for_an_implied_technology() -> None:
     shopify = build_test_fingerprint(
-        "Shopify", (build_test_pattern(ChannelEnum.HTML, r"cdn\.shopify\.com"),), implies=("Ruby",)
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, r"cdn\.shopify\.com"),),
+        implies=(build_test_implication("Ruby"),),
     )
     signal = Signal(channel=ChannelEnum.HTML, value="cdn.shopify.com/s/files")
 
@@ -301,9 +309,11 @@ def test_match_signals_carries_no_evidence_for_an_implied_technology() -> None:
 
 def test_match_signals_follows_an_implies_chain() -> None:
     shopify = build_test_fingerprint(
-        "Shopify", (build_test_pattern(ChannelEnum.HTML, "shopify"),), implies=("Ruby",)
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, "shopify"),),
+        implies=(build_test_implication("Ruby"),),
     )
-    ruby = build_test_fingerprint("Ruby", implies=("Rack",))
+    ruby = build_test_fingerprint("Ruby", implies=(build_test_implication("Rack"),))
     rack = build_test_fingerprint("Rack")
     signal = Signal(channel=ChannelEnum.HTML, value="shopify")
 
@@ -314,9 +324,11 @@ def test_match_signals_follows_an_implies_chain() -> None:
 
 def test_match_signals_terminates_on_an_implies_cycle() -> None:
     first = build_test_fingerprint(
-        "First", (build_test_pattern(ChannelEnum.HTML, "seen"),), implies=("Second",)
+        "First",
+        (build_test_pattern(ChannelEnum.HTML, "seen"),),
+        implies=(build_test_implication("Second"),),
     )
-    second = build_test_fingerprint("Second", implies=("First",))
+    second = build_test_fingerprint("Second", implies=(build_test_implication("First"),))
     signal = Signal(channel=ChannelEnum.HTML, value="seen")
 
     detections = match((signal,), first, second)
@@ -326,7 +338,9 @@ def test_match_signals_terminates_on_an_implies_cycle() -> None:
 
 def test_match_signals_keeps_the_direct_evidence_of_a_technology_that_is_also_implied() -> None:
     shopify = build_test_fingerprint(
-        "Shopify", (build_test_pattern(ChannelEnum.HTML, "shopify"),), implies=("Ruby",)
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, "shopify"),),
+        implies=(build_test_implication("Ruby"),),
     )
     ruby = build_test_fingerprint("Ruby", (build_test_pattern(ChannelEnum.HTML, "ruby-lang"),))
     signal = Signal(channel=ChannelEnum.HTML, value="shopify and ruby-lang")
@@ -338,7 +352,9 @@ def test_match_signals_keeps_the_direct_evidence_of_a_technology_that_is_also_im
 
 def test_match_signals_reports_an_implied_technology_that_is_not_in_the_database() -> None:
     shopify = build_test_fingerprint(
-        "Shopify", (build_test_pattern(ChannelEnum.HTML, "shopify"),), implies=("Unknown Thing",)
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, "shopify"),),
+        implies=(build_test_implication("Unknown Thing"),),
     )
     signal = Signal(channel=ChannelEnum.HTML, value="shopify")
 
@@ -350,7 +366,7 @@ def test_match_signals_does_not_let_an_unreported_technology_imply_another() -> 
     weak = build_test_fingerprint(
         "Weak Tech",
         (build_test_pattern(ChannelEnum.HTML, "seen", confidence=MINIMUM_REPORTED_CONFIDENCE - 1),),
-        implies=("Implied Tech",),
+        implies=(build_test_implication("Implied Tech"),),
     )
     signal = Signal(channel=ChannelEnum.HTML, value="seen")
 
@@ -360,14 +376,16 @@ def test_match_signals_does_not_let_an_unreported_technology_imply_another() -> 
 def test_match_signals_raises_an_implied_confidence_when_a_stronger_implier_appears() -> None:
     """The worklist re-queues on a strict increase, so the strongest path wins the chain."""
     strong = build_test_fingerprint(
-        "Strong", (build_test_pattern(ChannelEnum.HTML, "strong"),), implies=("Shared",)
+        "Strong",
+        (build_test_pattern(ChannelEnum.HTML, "strong"),),
+        implies=(build_test_implication("Shared"),),
     )
     weak = build_test_fingerprint(
         "Weak",
         (build_test_pattern(ChannelEnum.HTML, "weak", confidence=60),),
-        implies=("Shared",),
+        implies=(build_test_implication("Shared"),),
     )
-    shared = build_test_fingerprint("Shared", implies=("Downstream",))
+    shared = build_test_fingerprint("Shared", implies=(build_test_implication("Downstream"),))
     downstream = build_test_fingerprint("Downstream")
     signal = Signal(channel=ChannelEnum.HTML, value="strong and weak")
 
@@ -404,3 +422,42 @@ def test_pattern_source_text_describes_the_pattern(
     pattern = build_test_pattern(ChannelEnum.HEADER, value_source, key_source)
 
     assert pattern.decide_source_text() == expected
+
+
+def test_match_signals_caps_an_implied_technology_at_the_implication_confidence() -> None:
+    """Upstream writes ``PHP\\;confidence:50`` to say the implication itself is uncertain."""
+    shopify = build_test_fingerprint(
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, "shopify"),),
+        implies=(build_test_implication("Ruby", confidence=50),),
+    )
+    signal = Signal(channel=ChannelEnum.HTML, value="shopify")
+
+    detections = {detection.name: detection.confidence for detection in match((signal,), shopify)}
+
+    assert detections == {"Shopify": 100, "Ruby": 50}
+
+
+def test_match_signals_caps_an_implied_technology_at_the_implier_confidence() -> None:
+    """The weaker of the two bounds wins: a shaky match cannot imply something firmly."""
+    shopify = build_test_fingerprint(
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, "shopify", confidence=60),),
+        implies=(build_test_implication("Ruby", confidence=80),),
+    )
+    signal = Signal(channel=ChannelEnum.HTML, value="shopify")
+
+    detections = {detection.name: detection.confidence for detection in match((signal,), shopify)}
+
+    assert detections == {"Shopify": 60, "Ruby": 60}
+
+
+def test_match_signals_does_not_report_an_implication_below_the_threshold() -> None:
+    shopify = build_test_fingerprint(
+        "Shopify",
+        (build_test_pattern(ChannelEnum.HTML, "shopify"),),
+        implies=(build_test_implication("Ruby", confidence=MINIMUM_REPORTED_CONFIDENCE - 1),),
+    )
+    signal = Signal(channel=ChannelEnum.HTML, value="shopify")
+
+    assert list_names(match((signal,), shopify)) == ["Shopify"]

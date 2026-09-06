@@ -4,6 +4,8 @@ Pure: no I/O, no clock, no globals. A line that carries no usable domain — bla
 a bare scheme, a hostname without a dot — resolves to ``None`` and the caller drops it.
 """
 
+from techscope.domain.text_safety import is_visible_character
+
 COMMENT_PREFIX = "#"
 SCHEME_SEPARATOR = "://"
 WWW_PREFIX = "www."
@@ -14,14 +16,10 @@ LABEL_SEPARATOR = "."
 
 def decide_domain_or_none(raw_line: str) -> str | None:
     """Resolve one line of a domains file into a normalised domain, or ``None`` if unusable."""
-    line = raw_line.strip()
-
-    if len(line) == 0:
+    if is_ignorable_line(raw_line):
         return None
 
-    if line.startswith(COMMENT_PREFIX):
-        return None
-
+    line = decide_visible_text(raw_line).strip()
     lowercased = line.lower()
     without_scheme = _decide_host_without_scheme(lowercased)
     without_path = _decide_host_without_path(without_scheme)
@@ -35,6 +33,33 @@ def decide_domain_or_none(raw_line: str) -> str | None:
         return None
 
     return host
+
+
+def is_ignorable_line(raw_line: str) -> bool:
+    """Blank lines and comments are not domains and not mistakes either.
+
+    Decided on the visible text: an editor that prepends a byte order mark puts it on line
+    one, which is usually the comment header.
+    """
+    line = decide_visible_text(raw_line).strip()
+    is_blank = len(line) == 0
+    is_comment = line.startswith(COMMENT_PREFIX)
+
+    return is_blank or is_comment
+
+
+def decide_visible_text(raw_line: str) -> str:
+    """A byte order mark, a NUL or a bidirectional override is not part of any domain.
+
+    They are removed rather than refused because a reader never saw them either: a file saved
+    by an editor that prepends a byte order mark still lists the domain the author typed.
+    Whitespace stays, so that a tab between two words is still caught as two words.
+    """
+    return "".join(character for character in raw_line if _is_visible_or_space(character))
+
+
+def _is_visible_or_space(character: str) -> bool:
+    return character.isspace() or is_visible_character(character)
 
 
 def _decide_host_without_scheme(line: str) -> str:

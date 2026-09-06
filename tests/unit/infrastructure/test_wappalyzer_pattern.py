@@ -4,11 +4,11 @@ import pytest
 
 from techscope.domain.enums import ChannelEnum
 from techscope.domain.errors import FingerprintLoadError
-from techscope.domain.models import Pattern
+from techscope.domain.models import Implication, Pattern
 from techscope.infrastructure.repositories.wappalyzer_pattern import (
     DEFAULT_CONFIDENCE,
+    build_implication,
     build_pattern,
-    decide_implied_technology,
 )
 
 
@@ -138,13 +138,33 @@ def test_build_pattern_confidence_outside_the_range_is_rejected(confidence_text:
         build_pattern("Broken Tech", ChannelEnum.SCRIPT_SRC, raw_pattern, None)
 
 
-def test_decide_implied_technology_returns_a_plain_name_unchanged() -> None:
-    assert decide_implied_technology("PHP") == "PHP"
+def test_build_implication_gives_a_plain_name_full_confidence() -> None:
+    assert build_implication("Some Tech", "PHP") == Implication(technology="PHP", confidence=100)
 
 
-def test_decide_implied_technology_strips_a_confidence_modifier() -> None:
-    assert decide_implied_technology(r"PHP\;confidence:50") == "PHP"
+def test_build_implication_reads_a_confidence_modifier() -> None:
+    assert build_implication("Some Tech", r"PHP\;confidence:50") == Implication(
+        technology="PHP", confidence=50
+    )
 
 
-def test_decide_implied_technology_trims_surrounding_whitespace() -> None:
-    assert decide_implied_technology("  PHP  ") == "PHP"
+def test_build_implication_trims_surrounding_whitespace() -> None:
+    assert build_implication("Some Tech", "  PHP  ").technology == "PHP"
+
+
+def test_build_implication_rejects_a_confidence_that_is_not_a_number() -> None:
+    with pytest.raises(FingerprintLoadError) as raised:
+        build_implication("Some Tech", r"PHP\;confidence:high")
+
+    assert raised.value.technology == "Some Tech"
+
+
+@pytest.mark.parametrize(
+    "raw_implies", ["", "   ", r"\;confidence:50"], ids=["empty", "blank", "a modifier alone"]
+)
+def test_build_implication_rejects_an_entry_without_a_name(raw_implies: str) -> None:
+    """An implication is reported as a detection, and a detection with no name is not one."""
+    with pytest.raises(FingerprintLoadError) as raised:
+        build_implication("Some Tech", raw_implies)
+
+    assert raised.value.technology == "Some Tech"

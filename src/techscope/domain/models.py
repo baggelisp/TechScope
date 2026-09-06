@@ -40,12 +40,24 @@ class Pattern:
 
 
 @dataclass(frozen=True, slots=True)
+class Implication:
+    """One technology a fingerprint says is also in use, and how firmly it says so.
+
+    Upstream writes ``PHP\\;confidence:50`` to mean "probably PHP": the modifier bounds the
+    implied technology's confidence, whatever the implier matched at.
+    """
+
+    technology: str
+    confidence: int
+
+
+@dataclass(frozen=True, slots=True)
 class Fingerprint:
     """Everything the database says about one technology."""
 
     name: str
     patterns: tuple[Pattern, ...]
-    implies: tuple[str, ...]
+    implies: tuple[Implication, ...]
     categories: tuple[int, ...]
 
 

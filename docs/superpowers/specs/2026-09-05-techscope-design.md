@@ -119,7 +119,8 @@ keeps the JavaScript-global scan of feature 7 out of JSON blobs.
   *value* pattern stays legal on a keyed channel, where it means "this header exists"; on a
   keyless channel it would match every page, so the loader rejects it.
 - A technology's confidence is the max over its matched patterns (default 100); reported only
-  when ≥ 50. `implies` adds implied technologies at the implier's confidence.
+  when ≥ 50. `implies` adds implied technologies at the weaker of the implier's confidence and
+  the implication's own `\;confidence:N` modifier, and one that lands under 50 is not reported.
 - Detections carry `Evidence(channel, key, pattern_source, matched_text)` so every reported
   technology can be justified; e2e reports name the signal for each new detection, and the
   `--details` output exposes it.

@@ -3,7 +3,7 @@
 import re
 
 from techscope.domain.enums import ChannelEnum
-from techscope.domain.models import Fingerprint, Pattern
+from techscope.domain.models import Fingerprint, Implication, Pattern
 
 FULL_CONFIDENCE = 100
 
@@ -26,9 +26,13 @@ def build_test_pattern(
 
 
 def build_test_fingerprint(
-    name: str, patterns: tuple[Pattern, ...] = (), implies: tuple[str, ...] = ()
+    name: str, patterns: tuple[Pattern, ...] = (), implies: tuple[Implication, ...] = ()
 ) -> Fingerprint:
     return Fingerprint(name=name, patterns=patterns, implies=implies, categories=())
+
+
+def build_test_implication(technology: str, confidence: int = FULL_CONFIDENCE) -> Implication:
+    return Implication(technology=technology, confidence=confidence)
 
 
 def _compile_key_or_none(key_source: str | None) -> re.Pattern[str] | None:

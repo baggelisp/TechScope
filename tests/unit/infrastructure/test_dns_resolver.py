@@ -17,8 +17,10 @@ import dns.rdtypes.ANY.TXT
 import dns.resolver
 import pytest
 
+from techscope.domain.enums import FailureReasonEnum
 from techscope.infrastructure.dns.resolver import (
     MAXIMUM_CONCURRENT_LOOKUPS,
+    DnsAnswer,
     DnsPythonResolver,
     build_async_resolver,
 )
@@ -77,7 +79,7 @@ def test_build_async_resolver_bounds_one_attempt_more_tightly_than_the_whole_loo
 async def test_resolver_returns_a_mail_record_as_text(monkeypatch: pytest.MonkeyPatch) -> None:
     resolver = build_answering_resolver(monkeypatch, [build_mail_record(10, "aspmx.l.google.com.")])
 
-    assert await resolver.resolve(NAME, "MX") == ("10 aspmx.l.google.com.",)
+    assert await resolver.resolve(NAME, "MX") == DnsAnswer(records=("10 aspmx.l.google.com.",))
 
 
 async def test_resolver_returns_every_record(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -86,7 +88,7 @@ async def test_resolver_returns_every_record(monkeypatch: pytest.MonkeyPatch) ->
         [build_mail_record(10, "aspmx.l.google.com."), build_mail_record(20, "alt.google.com.")],
     )
 
-    assert len(await resolver.resolve(NAME, "MX")) == 2
+    assert len((await resolver.resolve(NAME, "MX")).records) == 2
 
 
 async def test_resolver_joins_the_strings_of_a_split_text_record(
@@ -97,7 +99,7 @@ async def test_resolver_joins_the_strings_of_a_split_text_record(
         monkeypatch, [build_text_record(b"v=spf1 include:send", b"grid.net ~all")]
     )
 
-    assert await resolver.resolve(NAME, "TXT") == ("v=spf1 include:sendgrid.net ~all",)
+    assert (await resolver.resolve(NAME, "TXT")).records == ("v=spf1 include:sendgrid.net ~all",)
 
 
 async def test_resolver_returns_a_single_string_text_record_unchanged(
@@ -107,7 +109,7 @@ async def test_resolver_returns_a_single_string_text_record_unchanged(
         monkeypatch, [build_text_record(b"hubspot-developer-verification=abc")]
     )
 
-    assert await resolver.resolve(NAME, "TXT") == ("hubspot-developer-verification=abc",)
+    assert (await resolver.resolve(NAME, "TXT")).records == ("hubspot-developer-verification=abc",)
 
 
 async def test_resolver_replaces_undecodable_bytes_in_a_text_record(
@@ -115,7 +117,7 @@ async def test_resolver_replaces_undecodable_bytes_in_a_text_record(
 ) -> None:
     resolver = build_answering_resolver(monkeypatch, [build_text_record(b"prefix-\xff\xfe-suffix")])
 
-    records = await resolver.resolve(NAME, "TXT")
+    records = (await resolver.resolve(NAME, "TXT")).records
 
     assert "prefix-" in records[0]
     assert "-suffix" in records[0]
@@ -123,35 +125,55 @@ async def test_resolver_replaces_undecodable_bytes_in_a_text_record(
 
 @pytest.mark.parametrize(
     "error",
-    [
-        dns.resolver.NXDOMAIN,
-        dns.resolver.NoAnswer,
-        dns.resolver.NoNameservers,
-        dns.exception.Timeout,
-    ],
-    ids=["no such domain", "no record of this type", "no nameserver answered", "timed out"],
+    [dns.resolver.NXDOMAIN, dns.resolver.NoAnswer],
+    ids=["no such domain", "no record of this type"],
 )
-async def test_resolver_reports_no_records_for_an_ordinary_absence(
+async def test_resolver_reports_no_records_and_no_failure_for_an_ordinary_absence(
     monkeypatch: pytest.MonkeyPatch, error: type[Exception]
 ) -> None:
+    """An absent record is an answer: nothing is published, and nothing went wrong."""
     resolver = build_refusing_resolver(monkeypatch, error)
 
-    assert await resolver.resolve(NAME, "MX") == ()
+    assert await resolver.resolve(NAME, "MX") == DnsAnswer(records=(), failure=None)
 
 
-async def test_resolver_reports_no_records_for_an_unexpected_dns_error(
+async def test_resolver_reports_a_timed_out_lookup_as_a_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A collector never raises: an unusable resolver is an empty answer with a warning."""
-    resolver = build_refusing_resolver(monkeypatch, dns.exception.FormError)
+    """The bug this fixes: a timed-out TXT lookup looked exactly like a domain with no TXT.
 
-    assert await resolver.resolve(NAME, "MX") == ()
+    On a loaded system resolver that silently cost up to six detections per run, and the
+    details file said ``problems: []`` for every one of them.
+    """
+    resolver = build_refusing_resolver(monkeypatch, dns.exception.Timeout)
+
+    answer = await resolver.resolve(NAME, "TXT")
+
+    assert answer.records == ()
+    assert answer.failure is FailureReasonEnum.TIMEOUT
+
+
+@pytest.mark.parametrize(
+    "error",
+    [dns.resolver.NoNameservers, dns.exception.FormError],
+    ids=["no nameserver answered", "a malformed answer"],
+)
+async def test_resolver_reports_a_resolver_breakdown_as_a_failure(
+    monkeypatch: pytest.MonkeyPatch, error: type[Exception]
+) -> None:
+    """A collector never raises: an unusable resolver is an empty answer that says why."""
+    resolver = build_refusing_resolver(monkeypatch, error)
+
+    answer = await resolver.resolve(NAME, "MX")
+
+    assert answer.records == ()
+    assert answer.failure is FailureReasonEnum.COLLECTOR_ERROR
 
 
 async def test_resolver_of_an_empty_answer_returns_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
     resolver = build_answering_resolver(monkeypatch, [])
 
-    assert await resolver.resolve(NAME, "CNAME") == ()
+    assert await resolver.resolve(NAME, "CNAME") == DnsAnswer(records=())
 
 
 class LookupCounter:

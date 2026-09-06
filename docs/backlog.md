@@ -162,7 +162,8 @@ same code path and is compared against the local one, with any difference explai
 details file rather than assumed away — a network-dependent scan cannot be byte-identical across
 environments with different network paths; repo public (the owner's call, not the tool's).
 **Submission gate (this feature only):** `make fresh-check` green —
-`scripts/fresh_clone_check.sh` clones the *committed* state into a temp dir and builds it there:
+`scripts/fresh_clone_check.sh` clones the *committed* state into a temp dir and builds it there
+(*the script and target were reverted in `acc6d8b`; the check is now run by hand — see item 13*):
 required files present, `assigment/` and other ignored paths absent, `uv sync --frozen`
 resolves, `make check`, both entry points run, `docker build`. Add `--with-e2e` for the
 submitted run. No other gate covers this: `make check` runs in a warm working tree that still
@@ -228,7 +229,7 @@ that changes detections is a bug — and the runtime no worse than +10%.
 **E2E:** `docker compose up api` + `curl -X POST /scans` with the 20 domains; response matches
 the CLI `--details` run for the same domains (modulo timing); under 60 s.
 
-## [~] 12. Web app — Next.js (only after 11 is merged) — PR #12
+## [x] 12. Web app — Next.js (only after 11 is merged) — PR #12
 **Goal:** run a scan from the browser and see the evidence behind every detection.
 **Acceptance:**
 - `web/` Next.js (App Router, TypeScript, ESLint, no static export). Two routed pages: a scan
@@ -259,3 +260,29 @@ the CLI `--details` run for the same domains (modulo timing); under 60 s.
   section with a screenshot.
 **E2E:** `docker compose up`, paste the 20 domains, scan completes under 60 s, matrix matches
 `output.json` from the CLI run.
+
+## [~] 13. Post-submission audit fixes
+**Goal:** close what a full audit of the delivered tree against the brief turned up. A fresh
+clone of `main` was built and gated by hand (`uv sync --frozen`, `make check`, both entry
+points, Docker build, seven live runs), and the whole tree was reviewed against every line of
+the brief. All hard constraints held; these are the corrections.
+**Acceptance:**
+- **A timed-out DNS lookup is a recorded problem, not an absence.** On the system resolver six
+  live runs returned 40-46 detections with `problems: []` on every domain; via `1.1.1.1` all
+  returned the committed 46. `Resolver.resolve` returns `DnsAnswer(records, failure)`;
+  `DnsSignalCollector` turns failed record types into one `CollectionFailure` (`dns: timeout`)
+  naming them, so the details file and the WARNING log say the records were never read.
+- **An `implies` entry keeps its own confidence.** `PHP\;confidence:50` was reported at the
+  implier's confidence. `Fingerprint.implies` is now `tuple[Implication, ...]`, and the matcher
+  bounds an implied technology by the weaker of the two and applies the reporting threshold.
+- **An input domain cannot carry invisible characters.** A byte order mark, a NUL or a bidi
+  override in a line is removed before normalisation; whitespace is kept so two words are still
+  refused. The API accepts domain lists from strangers, and those characters reached the log.
+- **A dropped input line is warned about.** A line that normalises to nothing was dropped at
+  every log level; it is now one WARNING quoting the line, invisible characters stripped and
+  length-capped. Blank lines and comments stay silent.
+- README: the `^intercom-` → `^intercom-.*` respelling is stated beside the `fullmatch` rule;
+  the DNS section and the known limitations describe the recorded timeout; item 9's reverted
+  fresh-clone gate is noted here; the spec's `implies` rule is amended.
+**E2E:** live; `output.json` unchanged (the fixes change what is recorded, not what is
+detected), a system-resolver run that loses TXT records now lists them under `problems`.

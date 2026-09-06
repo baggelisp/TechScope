@@ -25,6 +25,9 @@ NORMALISED_CASES = [
     ("sub.example.com", "sub.example.com", "a subdomain other than www is preserved"),
     ("bbc.co.uk", "bbc.co.uk", "a multi-part public suffix is preserved"),
     ("sentry.io", "sentry.io", "a two-label domain is preserved"),
+    ("\ufeffexample.com", "example.com", "a byte order mark is removed"),
+    ("exam\u202eple.com", "example.com", "a bidirectional override is removed"),
+    ("exa\x00mple.com", "example.com", "a NUL character is removed"),
 ]
 
 UNUSABLE_CASES = [
@@ -37,6 +40,7 @@ UNUSABLE_CASES = [
     ("/just/a/path", "a path with no host"),
     ("localhost", "a hostname with no dot"),
     ("two words.com", "a line containing whitespace inside the host"),
+    ("a.com\tb.com", "a tab between two hosts"),
     (".", "a lone dot"),
 ]
 

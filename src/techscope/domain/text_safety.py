@@ -14,8 +14,8 @@ INVISIBLE_CHARACTER_CATEGORIES = frozenset({"Cc", "Cf", "Co", "Cs"})
 
 def strip_invisible_characters(text: str) -> str:
     """Remove what a reader cannot see but a terminal or a browser would still act on."""
-    return "".join(
-        character
-        for character in text
-        if unicodedata.category(character) not in INVISIBLE_CHARACTER_CATEGORIES
-    )
+    return "".join(character for character in text if is_visible_character(character))
+
+
+def is_visible_character(character: str) -> bool:
+    return unicodedata.category(character) not in INVISIBLE_CHARACTER_CATEGORIES

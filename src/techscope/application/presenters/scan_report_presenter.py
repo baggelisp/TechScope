@@ -44,7 +44,7 @@ def _present_fingerprint(fingerprint: Fingerprint) -> dict[str, object]:
     return {
         "name": fingerprint.name,
         "channels": sorted(channels),
-        "implies": list(fingerprint.implies),
+        "implies": [implication.technology for implication in fingerprint.implies],
     }
 
 
