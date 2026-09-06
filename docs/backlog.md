@@ -115,7 +115,7 @@ collectors concurrently. Matched via `dns` patterns (Google Workspace, Microsoft
 HubSpot verification, Salesforce). Fake resolver in tests.
 **E2E:** live; expect mail-provider detections on most domains.
 
-## [~] 7. JS globals extractor (static)
+## [~] 7. JS globals extractor (static) — PR #7
 **Goal:** `window.*` names from inline scripts without execution.
 **Acceptance:** `infrastructure/extractors/jsglobals.py` scans `SCRIPT_INLINE` bodies for
 `window.X =`, `window['X'] =`, and top-level `var/let/const X =` or `function X(`; ignores
