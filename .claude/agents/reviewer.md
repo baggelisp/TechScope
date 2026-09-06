@@ -97,8 +97,7 @@ Finish your pass, then add "Escalation recommended: <reason>" if any apply: the 
 `data/technologies.json` — accuracy is the graded metric); changes the use cases'
 concurrency/timeout model, or the recorded `/e2e` runtime moved by more than 20 %; changes a
 port signature; exceeds ~400 lines / ~8 files; or contains a would-be CRITICAL you could not
-settle. For the submission itself (backlog item 9) the escalation is a different agent:
-recommend `submission-reviewer`, which grades the whole deliverable against the brief.
+settle.
 
 ## Output
 
