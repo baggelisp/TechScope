@@ -1,0 +1,1067 @@
+{
+  "summary": {
+    "domains": 20,
+    "detections": 45,
+    "domains_with_problems": 0,
+    "duration_seconds": 6.371
+  },
+  "domains": [
+    {
+      "domain": "notion.so",
+      "duration_seconds": 2.369,
+      "technologies": [
+        "Cloudflare"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19cc990e98a9-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "DYNAMIC"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "stripe.com",
+      "duration_seconds": 5.025,
+      "technologies": [
+        "Google Workspace",
+        "Stripe"
+      ],
+      "detections": [
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "Stripe",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "x-stripe-proxy-response",
+              "pattern": "X-Stripe-.*",
+              "matched": "upstream"
+            },
+            {
+              "channel": "header",
+              "key": "x-stripe-server-rpc-duration-micros",
+              "pattern": "X-Stripe-.*",
+              "matched": "44364"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "intercom.com",
+      "duration_seconds": 5.045,
+      "technologies": [
+        "Google Workspace"
+      ],
+      "detections": [
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "shopify.com",
+      "duration_seconds": 3.93,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace",
+        "SendGrid",
+        "Shopify"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "BYPASS"
+            },
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19dadabc123c-ATH"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "SendGrid",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "sendgrid\\.net",
+              "matched": "sendgrid.net"
+            }
+          ]
+        },
+        {
+          "name": "Shopify",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "html",
+              "key": null,
+              "pattern": "cdn\\.shopify\\.com",
+              "matched": "cdn.shopify.com"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "hubspot.com",
+      "duration_seconds": 3.363,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace",
+        "HubSpot"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19d60edd6f5c-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "DYNAMIC"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "linear.app",
+      "duration_seconds": 2.983,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19d2ce605ef7-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "DYNAMIC"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "vercel.com",
+      "duration_seconds": 2.472,
+      "technologies": [
+        "Google Workspace",
+        "SendGrid"
+      ],
+      "detections": [
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "SendGrid",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "sendgrid\\.net",
+              "matched": "sendgrid.net"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "figma.com",
+      "duration_seconds": 2.354,
+      "technologies": [
+        "Google Workspace"
+      ],
+      "detections": [
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "webflow.com",
+      "duration_seconds": 4.821,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace",
+        "HubSpot"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19d57aa47000-IAD"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "HIT"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "loom.com",
+      "duration_seconds": 6.37,
+      "technologies": [],
+      "detections": [],
+      "problems": []
+    },
+    {
+      "domain": "pipedrive.com",
+      "duration_seconds": 1.273,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19d60aa277ac-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "DYNAMIC"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "typeform.com",
+      "duration_seconds": 1.701,
+      "technologies": [
+        "Cloudflare",
+        "Google Analytics 4",
+        "Google Workspace",
+        "HubSpot",
+        "SendGrid"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19dbef0d3c3d-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "HIT"
+            }
+          ]
+        },
+        {
+          "name": "Google Analytics 4",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "script_inline",
+              "key": null,
+              "pattern": "gtag\\(",
+              "matched": "gtag("
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        },
+        {
+          "name": "SendGrid",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "sendgrid\\.net",
+              "matched": "sendgrid.net"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "calendly.com",
+      "duration_seconds": 1.692,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace",
+        "HubSpot"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19dadc2f9e21-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "DYNAMIC"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "segment.com",
+      "duration_seconds": 2.408,
+      "technologies": [
+        "Google Analytics 4",
+        "Google Workspace",
+        "HubSpot"
+      ],
+      "detections": [
+        {
+          "name": "Google Analytics 4",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "script_inline",
+              "key": null,
+              "pattern": "gtag\\(",
+              "matched": "gtag("
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "hotjar.com",
+      "duration_seconds": 1.195,
+      "technologies": [
+        "Google Workspace",
+        "HubSpot"
+      ],
+      "detections": [
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "drift.com",
+      "duration_seconds": 2.361,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace",
+        "SendGrid"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19e16c3eda88-ATH"
+            },
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "REVALIDATED"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "SendGrid",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "sendgrid\\.net",
+              "matched": "sendgrid.net"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "zendesk.com",
+      "duration_seconds": 1.103,
+      "technologies": [
+        "Cloudflare",
+        "Google Workspace",
+        "HubSpot"
+      ],
+      "detections": [
+        {
+          "name": "Cloudflare",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "header",
+              "key": "cf-cache-status",
+              "pattern": "cf-cache-status",
+              "matched": "HIT"
+            },
+            {
+              "channel": "header",
+              "key": "cf-ray",
+              "pattern": "cf-ray",
+              "matched": "a36c19ddfd074faf-ATH"
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "HubSpot",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            },
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "hubspot-developer-verification",
+              "matched": "hubspot-developer-verification"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "mailchimp.com",
+      "duration_seconds": 1.456,
+      "technologies": [
+        "Google Analytics 4"
+      ],
+      "detections": [
+        {
+          "name": "Google Analytics 4",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "script_inline",
+              "key": null,
+              "pattern": "gtag\\(",
+              "matched": "gtag("
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "sendgrid.com",
+      "duration_seconds": 1.5,
+      "technologies": [
+        "Google Analytics 4",
+        "Google Workspace"
+      ],
+      "detections": [
+        {
+          "name": "Google Analytics 4",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "script_inline",
+              "key": null,
+              "pattern": "gtag\\(",
+              "matched": "gtag("
+            }
+          ]
+        },
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    },
+    {
+      "domain": "sentry.io",
+      "duration_seconds": 1.652,
+      "technologies": [
+        "Google Workspace",
+        "SendGrid"
+      ],
+      "detections": [
+        {
+          "name": "Google Workspace",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            },
+            {
+              "channel": "dns_mx",
+              "key": null,
+              "pattern": "google\\.com",
+              "matched": "google.com"
+            }
+          ]
+        },
+        {
+          "name": "SendGrid",
+          "confidence": 100,
+          "evidence": [
+            {
+              "channel": "dns_txt",
+              "key": null,
+              "pattern": "sendgrid\\.net",
+              "matched": "sendgrid.net"
+            }
+          ]
+        }
+      ],
+      "problems": []
+    }
+  ]
+}

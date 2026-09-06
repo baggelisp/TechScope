@@ -50,15 +50,23 @@ class Resolver(Protocol):
     async def resolve(self, name: str, record_type: str) -> tuple[str, ...]: ...
 
 
-def build_async_resolver() -> dns.asyncresolver.Resolver:
+def build_async_resolver(nameservers: tuple[str, ...] = ()) -> dns.asyncresolver.Resolver:
     """The resolver this adapter expects, configured once.
 
     The module-level convenience function re-reads the system configuration on every call, and
     leaves the per-attempt bound at its default, which is what starved the TCP retry.
+
+    Given no nameservers, the system's are used. Given some, they replace them: measured over
+    three full runs of the assignment's domains, the system resolver on one machine returned
+    713-749 records and a different number each time, while a public one returned 749 every time
+    and fifteen times faster. Which to trust is the caller's decision, not this module's.
     """
     resolver = dns.asyncresolver.Resolver()
     resolver.timeout = ATTEMPT_TIMEOUT_SECONDS
     resolver.lifetime = RECORD_TIMEOUT_SECONDS
+
+    if len(nameservers) > 0:
+        resolver.nameservers = list(nameservers)
 
     return resolver
 

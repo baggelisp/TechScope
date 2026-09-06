@@ -9,19 +9,15 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from techscope.application.ports.domain_scanner import DomainScanner
+import httpx
+
 from techscope.application.ports.fingerprint_repository import FingerprintRepository
 from techscope.application.ports.scan_report_writer import ScanReportWriter
 from techscope.application.ports.signal_collector import SignalCollector
 from techscope.application.use_cases.scan_domain import ScanDomainUseCase
-from techscope.domain.enums import FailureReasonEnum
+from techscope.application.use_cases.scan_domains import ScanDomainsUseCase
 from techscope.domain.matcher import build_fingerprint_index
-from techscope.domain.models import (
-    CollectionFailure,
-    DomainScanResult,
-    FingerprintIndex,
-    ScanReport,
-)
+from techscope.domain.models import FingerprintIndex, ScanReport
 from techscope.infrastructure.collectors.dns_collector import DnsSignalCollector
 from techscope.infrastructure.collectors.http_collector import HttpSignalCollector
 from techscope.infrastructure.dns.resolver import DnsPythonResolver, build_async_resolver
@@ -42,6 +38,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_CONCURRENCY = 10
 # Re-exported so the CLI can offer the real per-domain bound as its default.
 DEFAULT_TIMEOUT_SECONDS = TOTAL_TIMEOUT_SECONDS
+# Under the assignment's 60 s, with room to write the output after the last domain lands.
+DEFAULT_DEADLINE_SECONDS = 55.0
 # Re-exported so the CLI can offer it as a default without importing infrastructure.
 DEFAULT_FINGERPRINTS_PATH = DEFAULT_TECHNOLOGIES_PATH
 
@@ -52,9 +50,12 @@ class ScanOptions:
 
     domains: tuple[str, ...]
     output_path: Path
+    details_path: Path | None
     fingerprints_path: Path
+    nameservers: tuple[str, ...]
     concurrency: int
     timeout_seconds: float
+    deadline_seconds: float
 
 
 def run_scan(options: ScanOptions) -> ScanReport:
@@ -66,69 +67,34 @@ async def _run_scan(options: ScanOptions) -> ScanReport:
     index = _load_fingerprint_index(options.fingerprints_path)
 
     async with build_client() as client:
-        fetcher = HomepageFetcher(
-            client=client,
-            retry_backoff_seconds=RETRY_BACKOFF_SECONDS,
-            total_timeout_seconds=options.timeout_seconds,
-        )
-        collectors: tuple[SignalCollector, ...] = (
-            HttpSignalCollector(fetcher=fetcher),
-            DnsSignalCollector(resolver=DnsPythonResolver(build_async_resolver())),
-        )
-        scan_domain = ScanDomainUseCase(collectors=collectors, fingerprint_index=index)
-        results = await scan_every_domain(scan_domain, options.domains, options.concurrency)
+        scan_domains = _build_scan_domains(client, index, options)
+        report = await scan_domains.execute(options.domains)
 
-    report = ScanReport(results=results)
-    writer: ScanReportWriter = JsonReportWriter()
-    writer.write(report, options.output_path)
+    _write_report(report, options)
 
     return report
 
 
-async def scan_every_domain(
-    scan_domain: DomainScanner, domains: tuple[str, ...], concurrency: int
-) -> tuple[DomainScanResult, ...]:
-    """Scan domains in parallel, bounded, and return one result per domain in input order.
-
-    Sequential scanning was enough until DNS joined: three lookups per domain took the run from
-    16 s to 61 s, past the 60 s the assignment allows. Backlog item 8 still owns the whole-run
-    deadline and the structured output.
-
-    Exceptions are collected rather than raised. Without that, one domain reaching an unexpected
-    state would abort the gather and the run would write no output at all — the blast radius
-    would be every domain, not the one that failed.
-    """
-    limit = asyncio.Semaphore(concurrency)
-
-    async def scan_one(domain: str) -> DomainScanResult:
-        async with limit:
-            return await scan_domain.execute(domain)
-
-    outcomes = await asyncio.gather(
-        *(scan_one(domain) for domain in domains), return_exceptions=True
+def _build_scan_domains(
+    client: httpx.AsyncClient, index: FingerprintIndex, options: ScanOptions
+) -> ScanDomainsUseCase:
+    fetcher = HomepageFetcher(
+        client=client,
+        retry_backoff_seconds=RETRY_BACKOFF_SECONDS,
+        total_timeout_seconds=options.timeout_seconds,
     )
-
-    return tuple(
-        _decide_domain_result(domain, outcome)
-        for domain, outcome in zip(domains, outcomes, strict=True)
+    resolver = DnsPythonResolver(build_async_resolver(options.nameservers))
+    collectors: tuple[SignalCollector, ...] = (
+        HttpSignalCollector(fetcher=fetcher),
+        DnsSignalCollector(resolver=resolver),
     )
+    scan_domain = ScanDomainUseCase(collectors=collectors, fingerprint_index=index)
 
-
-def _decide_domain_result(
-    domain: str, outcome: DomainScanResult | BaseException
-) -> DomainScanResult:
-    if isinstance(outcome, DomainScanResult):
-        return outcome
-
-    if not isinstance(outcome, Exception):
-        raise outcome
-
-    logger.error("scanning %s failed unexpectedly: %r", domain, outcome)
-    failure = CollectionFailure(
-        collector="scan", reason=FailureReasonEnum.COLLECTOR_ERROR, detail=repr(outcome)
+    return ScanDomainsUseCase(
+        scan_domain=scan_domain,
+        concurrency=options.concurrency,
+        deadline_seconds=options.deadline_seconds,
     )
-
-    return DomainScanResult(domain=domain, detections=(), failures=(failure,))
 
 
 def _load_fingerprint_index(fingerprints_path: Path) -> FingerprintIndex:
@@ -142,3 +108,13 @@ def _load_fingerprint_index(fingerprints_path: Path) -> FingerprintIndex:
     )
 
     return index
+
+
+def _write_report(report: ScanReport, options: ScanOptions) -> None:
+    writer: ScanReportWriter = JsonReportWriter()
+    writer.write_summary(report, options.output_path)
+
+    if options.details_path is None:
+        return
+
+    writer.write_details(report, options.details_path)

@@ -30,6 +30,10 @@ class ScanDomainUseCase:
         self._fingerprint_index = fingerprint_index
 
     async def execute(self, domain: str) -> DomainScanResult:
+        """Collect, match, report.
+
+        ``duration_seconds`` stays absent here: whoever ran this owns the clock and fills it in.
+        """
         outcomes = await asyncio.gather(
             *(collector.collect(domain) for collector in self._collectors),
             return_exceptions=True,
@@ -47,7 +51,12 @@ class ScanDomainUseCase:
 
         detections = match_signals(tuple(signals), self._fingerprint_index)
 
-        return DomainScanResult(domain=domain, detections=detections, failures=tuple(failures))
+        return DomainScanResult(
+            domain=domain,
+            detections=detections,
+            failures=tuple(failures),
+            duration_seconds=None,
+        )
 
 
 def _check_outcome_is_recoverable_or_raise(
