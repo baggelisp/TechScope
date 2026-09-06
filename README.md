@@ -268,17 +268,10 @@ package's registry.
 ## Development
 
 ```bash
-make check        # ruff, format check, mypy --strict, and the offline tests
-make fmt          # format and apply safe lint fixes
-make e2e          # timed live scan of the 20 assignment domains
-make fresh-check  # clone the committed state to a temp dir and build it there
+make check    # ruff, format check, mypy --strict, and the offline tests
+make fmt      # format and apply safe lint fixes
+make e2e      # timed live scan of the 20 assignment domains
 ```
-
-`make fresh-check` is the one that answers "does this work for someone who is not me": it clones
-the committed state into a temporary directory and builds and tests it there, with nothing from
-the working tree in scope. It catches a file that is gitignored by accident, a lockfile that does
-not resolve, and a README command that only works because your environment is already warm. Pass
-`FRESH_CHECK_ARGS=--with-e2e` to include the live scan.
 
 490 tests, none of which touch the network: HTTP goes through `respx`, DNS through injected
 fakes, and an autouse fixture makes a real nameserver unreachable from any unit test. Every
